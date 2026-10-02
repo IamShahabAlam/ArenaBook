@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+
+import 'helpers/temp_dir.dart';
 import 'package:get/get.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:http/http.dart' as http;
@@ -18,7 +20,7 @@ void main() {
   setUp(() => dir = Directory.systemTemp.createTempSync('response_cache_test'));
   tearDown(() async {
     await Hive.close();
-    dir.deleteSync(recursive: true);
+    await deleteTempDir(dir);
   });
 
   Future<ResponseCacheService> openCache({bool enabled = true, Duration maxAge = const Duration(days: 7), int maxSize = 1024 * 1024, List<int>? key}) {

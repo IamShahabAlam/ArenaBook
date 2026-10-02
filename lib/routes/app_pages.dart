@@ -2,9 +2,9 @@
 class PageNames {
   //base
   static String splashscreen = '/splashScreen';
-  static String loginScreen = '/loginScreen';
-  static String dashBoardScreen = '/dashBoardScreen';
+  static String loginScreen = '/loginScreen'; // starter login, unused until accounts/sync are added
+  static String dashBoardScreen = '/dashBoardScreen'; // starter placeholder, unused
 
-  // feature modules --------------
-  // static String featureScreen = '/Feature';
+  // ArenaBook --------------
+  static String shellScreen = '/arena'; // bottom-nav shell: Home, Bookings, New Booking, Pending, Calendar
 }

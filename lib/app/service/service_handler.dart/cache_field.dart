@@ -34,6 +34,9 @@ class CacheField<T> {
   /// Current value. Reading it inside Obx() makes that widget rebuild when the value changes.
   T get value => _rx.value;
 
+  /// The reactive variable, for GetX workers (`ever(field.rx, ...)`). Write only through [save].
+  RxInterface<T> get rx => _rx;
+
   /// Loads the value from the cache (or the default if nothing is saved) and returns it.
   T read() {
     final storage = StorageService.to;

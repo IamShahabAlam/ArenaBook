@@ -7,7 +7,7 @@ import 'cache_field.dart';
 class ThemeStore extends GetxController {
   static ThemeStore get to => Get.find();
 
-  final isDarkMode = CacheField<bool>(AppCache.themes.isDarkMode, false);
+  final isDarkMode = CacheField<bool>(AppCache.themes.isDarkMode, true); // ArenaBook defaults to dark
   final selectedThemeColor = CacheField<String>(AppCache.themes.themeColor, ''); // hex string, '' = default palette
   final userPreferenceId = CacheField<String>(AppCache.themes.themePrefsId, ''); // server-side id of the saved theme
 

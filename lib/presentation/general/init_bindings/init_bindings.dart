@@ -3,6 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
+
+import '../../../app/service/getx_service/booking_service.dart';
+import '../../../app/service/service_handler.dart/settings_store.dart';
+import '../../../data/repositories/booking/booking_repository.dart';
 
 import '../../../app/service/getx_service/app_dev_mode_service.dart';
 import '../../../app/service/getx_service/developer_mode_service.dart';
@@ -38,6 +43,14 @@ class InitBindings implements Bindings {
     Get.put<ThemeStore>(ThemeStore());
     // Theme Manager (reads ThemeStore)
     Get.put<ThemeManager>(ThemeManager());
+
+    // ArenaBook ---------------------------------------------------------------
+    // Currency + hourly rates (prefs)
+    Get.put<SettingsStore>(SettingsStore());
+    // Bookings ledger (Hive). Initialising Hive again is safe; it only sets the storage path.
+    await Hive.initFlutter();
+    final bookingRepository = await HiveBookingRepository.open();
+    await Get.putAsync<BookingService>(() => BookingService(bookingRepository).init(), permanent: true);
 
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
     // FOR SSL Issues (Https) -- see AppHttpOverrides warning before shipping

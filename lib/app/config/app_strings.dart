@@ -1,8 +1,12 @@
 class AppStrings {
   // App Identity ------------------- (fill these per project)
-  static const appName = '';
-  static String kappVersionWithDate = ''; // e.g. 'v1.0.0' (add Beta for beta badge or Stage)
-  static const kappBuildNumber = 0; // must match the build number on Play Console & App Store Connect
+  static const appName = 'ArenaBook';
+  static const appTagline = 'Indoor Cricket Pitch & Padel Court Management System';
+  static const developerName = 'ArenaBook Eng Team';
+  static String kappVersionWithDate = 'v1.0.0'; // keep in sync with `version:` in pubspec.yaml
+  static const kappBuildNumber = 1; // must match the build number on Play Console & App Store Connect
+  // Support contact shown in the drawer (local or international format, e.g. 03001234567). '' hides the buttons.
+  static const supportPhone = '';
   static String webApiVersion = ''; // compatible backend/web API version (ask backend team)
   static const appStoreAddress = '';
   static const playStoreAddress = '';

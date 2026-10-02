@@ -1,0 +1,223 @@
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:arenabook/data/models/booking.dart';
+import 'package:arenabook/data/models/sport.dart';
+import 'package:arenabook/data/models/time_range.dart';
+import 'package:arenabook/data/rules/booking_rules.dart';
+import 'package:arenabook/data/rules/booking_stats.dart';
+
+Booking booking({
+  String id = 'TRF-1001',
+  String courtId = 'cricket-1',
+  Sport sport = Sport.cricket,
+  DateTime? date,
+  List<TimeRange>? slots,
+  int totalFee = 1500,
+  int advancePaid = 500,
+  DateTime? settledAt,
+  DateTime? cancelledAt,
+  bool advanceReturned = false,
+}) {
+  final created = DateTime(2026, 10, 1, 8);
+  return Booking(
+    id: id,
+    customerName: 'Zain Malik',
+    phone: '03001234567',
+    sport: sport,
+    courtId: courtId,
+    date: date ?? DateTime(2026, 10, 1),
+    slots: slots ?? [TimeRange.hour(20)],
+    hourlyRate: 1500,
+    totalFee: totalFee,
+    advancePaid: advancePaid,
+    balanceSettledAt: settledAt,
+    cancelledAt: cancelledAt,
+    advanceReturned: advanceReturned,
+    createdAt: created,
+    updatedAt: created,
+  );
+}
+
+void main() {
+  group('TimeRange', () {
+    test('overlap uses real time, not labels', () {
+      const custom = TimeRange(20 * 60 + 30, 21 * 60 + 30); // 8:30PM - 9:30PM
+      expect(custom.overlaps(TimeRange.hour(20)), isTrue);
+      expect(custom.overlaps(TimeRange.hour(21)), isTrue);
+      expect(custom.overlaps(TimeRange.hour(22)), isFalse);
+    });
+
+    test('touching ranges do not overlap', () {
+      expect(TimeRange.hour(9).overlaps(TimeRange.hour(10)), isFalse);
+    });
+
+    test('concise labels', () {
+      expect(TimeRange.hour(9).label, '9AM - 10AM');
+      expect(TimeRange.hour(11).label, '11AM - 12PM');
+      expect(TimeRange.hour(23).label, '11PM - 12AM');
+      expect(const TimeRange(13 * 60 + 30, 14 * 60 + 30).label, '1:30PM - 2:30PM');
+    });
+
+    test('tryCreate rejects invalid ranges', () {
+      expect(TimeRange.tryCreate(600, 600), isNull);
+      expect(TimeRange.tryCreate(700, 600), isNull);
+      expect(TimeRange.tryCreate(-1, 60), isNull);
+      expect(TimeRange.tryCreate(0, 1441), isNull);
+      expect(TimeRange.tryCreate(0, 1440), isNotNull);
+    });
+  });
+
+  group('Booking money', () {
+    test('fee is rounded to whole rupees', () {
+      expect(Booking.feeFor(60, 1500), 1500);
+      expect(Booking.feeFor(90, 1500), 2250);
+      expect(Booking.feeFor(50, 1000), 833); // 833.33
+    });
+
+    test('pending booking', () {
+      final b = booking();
+      expect(b.status, BookingStatus.pending);
+      expect(b.balanceDue, 1000);
+      expect(b.amountCollected, 500);
+    });
+
+    test('mark paid keeps the original advance', () {
+      final b = booking().settle(DateTime(2026, 10, 1, 21));
+      expect(b.status, BookingStatus.paid);
+      expect(b.balanceDue, 0);
+      expect(b.amountCollected, 1500);
+      expect(b.advancePaid, 500); // the prototype overwrote this
+    });
+
+    test('cancelled booking: returned advance is not collected', () {
+      final now = DateTime(2026, 10, 1, 10);
+      expect(booking().cancel(reason: 'rain', advanceReturned: true, now: now).amountCollected, 0);
+      expect(booking().cancel(reason: 'rain', advanceReturned: false, now: now).amountCollected, 500);
+      expect(booking().cancel(reason: 'rain', advanceReturned: false, now: now).balanceDue, 0);
+    });
+
+    test('editable only when active and today or later', () {
+      final now = DateTime(2026, 10, 1, 23, 30);
+      expect(booking().canEdit(now), isTrue);
+      expect(booking(date: DateTime(2026, 9, 30)).canEdit(now), isFalse);
+      expect(booking(cancelledAt: now).canEdit(now), isFalse);
+    });
+  });
+
+  group('Booking JSON', () {
+    test('round trip keeps every field', () {
+      final original = booking(slots: [const TimeRange(810, 870), TimeRange.hour(20)], settledAt: DateTime(2026, 10, 1, 22));
+      final copy = Booking.fromJson(original.toJson());
+      expect(copy.toJson(), original.toJson());
+    });
+
+    test('date key is local, never shifted by UTC', () {
+      final justAfterMidnight = DateTime(2026, 10, 2, 0, 30);
+      expect(dateKey(justAfterMidnight), '2026-10-02');
+      expect(parseDateKey('2026-10-02'), DateTime(2026, 10, 2));
+    });
+
+    test('corrupt record throws FormatException', () {
+      final json = booking().toJson()..['slots'] = [];
+      expect(() => Booking.fromJson(json), throwsFormatException);
+    });
+  });
+
+  group('Slot availability', () {
+    final day = DateTime(2026, 10, 1);
+
+    test('cancelled bookings free their slots', () {
+      final list = [
+        booking(),
+        booking(id: 'TRF-1002', slots: [TimeRange.hour(18)], cancelledAt: day),
+      ];
+      expect(BookingRules.occupied(list, date: day, courtId: 'cricket-1'), [TimeRange.hour(20)]);
+    });
+
+    test('other courts and days are ignored, edited booking excluded', () {
+      final list = [booking(), booking(id: 'TRF-1002', courtId: 'cricket-2'), booking(id: 'TRF-1003', date: DateTime(2026, 10, 2))];
+      expect(BookingRules.occupied(list, date: day, courtId: 'cricket-1'), [TimeRange.hour(20)]);
+      expect(BookingRules.occupied(list, date: day, courtId: 'cricket-1', excludeBookingId: 'TRF-1001'), isEmpty);
+    });
+
+    test('slot states', () {
+      final now = DateTime(2026, 10, 1, 9, 5);
+      final occupied = [const TimeRange(20 * 60 + 30, 21 * 60 + 30)];
+      SlotState state(int hour, {Set<TimeRange> selected = const {}}) =>
+          BookingRules.stateOf(TimeRange.hour(hour), date: day, now: now, occupied: occupied, selected: selected);
+
+      expect(state(9), SlotState.past); // started at 9:00
+      expect(state(10), SlotState.available);
+      expect(state(20), SlotState.booked); // custom 8:30 blocks 8PM slot
+      expect(state(21), SlotState.booked); // ...and 9PM slot
+      expect(state(10, selected: {TimeRange.hour(10)}), SlotState.selected);
+    });
+
+    test('future days have no past slots', () {
+      expect(BookingRules.isPast(TimeRange.hour(9), DateTime(2026, 10, 2), DateTime(2026, 10, 1, 23)), isFalse);
+    });
+
+    test('validateSlots', () {
+      final now = DateTime(2026, 10, 1, 12);
+      final occupied = [TimeRange.hour(20)];
+      String? check(List<TimeRange> slots, {Set<TimeRange> keep = const {}}) =>
+          BookingRules.validateSlots(slots, date: day, now: now, occupied: occupied, keepPastSlots: keep);
+
+      expect(check([]), isNotNull);
+      expect(check([TimeRange.hour(14)]), isNull);
+      expect(check([TimeRange.hour(10)]), contains('already started'));
+      expect(check([TimeRange.hour(10)], keep: {TimeRange.hour(10)}), isNull);
+      expect(check([const TimeRange(19 * 60 + 30, 20 * 60 + 30)]), contains('clashes'));
+      expect(check([TimeRange.hour(14), const TimeRange(14 * 60 + 30, 15 * 60 + 30)]), contains('overlap'));
+    });
+  });
+
+  group('Customer input', () {
+    test('phone', () {
+      expect(BookingRules.validatePhone(''), isNotNull);
+      expect(BookingRules.validatePhone('0300123'), isNotNull);
+      expect(BookingRules.validatePhone('03001234567'), isNull);
+      expect(BookingRules.validatePhone('030012345678'), isNotNull);
+    });
+
+    test('email is optional but must be valid when given', () {
+      expect(BookingRules.validateEmail(''), isNull);
+      expect(BookingRules.validateEmail('zain@example.com'), isNull);
+      expect(BookingRules.validateEmail('zain@'), isNotNull);
+    });
+
+    test('WhatsApp number is international', () {
+      expect(BookingRules.toWhatsAppNumber('03001234567'), '923001234567');
+      expect(BookingRules.toWhatsAppNumber('923001234567'), '923001234567');
+      expect(BookingRules.toWhatsAppNumber('00923001234567'), '923001234567');
+      expect(BookingRules.toWhatsAppNumber(''), '');
+    });
+
+    test('advance is clamped to the fee', () {
+      expect(BookingRules.clampAdvance(5000, 1500), 1500);
+      expect(BookingRules.clampAdvance(-5, 1500), 0);
+      expect(BookingRules.advanceForPercent(1500, 25), 375);
+    });
+  });
+
+  group('BookingStats', () {
+    test('excludes cancelled and filters by sport', () {
+      final day = DateTime(2026, 10, 1);
+      final list = [
+        booking(),
+        booking(id: 'TRF-1002', sport: Sport.padel, courtId: 'padel-a', totalFee: 2000, advancePaid: 2000),
+        booking(id: 'TRF-1003', cancelledAt: day),
+      ];
+      final all = BookingStats.from(list);
+      expect(all.totalBookings, 2);
+      expect(all.totalValue, 3500);
+      expect(all.collectedAmount, 2500);
+      expect(all.pendingAmount, 1000);
+      expect(all.pendingCount, 1);
+
+      final padel = BookingStats.from(list, sport: Sport.padel);
+      expect(padel.totalBookings, 1);
+      expect(padel.pendingAmount, 0);
+    });
+  });
+}

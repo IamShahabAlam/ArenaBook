@@ -526,7 +526,7 @@ bool isValidUrl(String url) {
 
   /// Back-press handler: on the home route asks to exit the app, otherwise navigates to home.
   static void homeOrExitRoute({String? homeRoute, bool doExit = true}) {
-    final route = homeRoute ?? PageNames.dashBoardScreen;
+    final route = homeRoute ?? PageNames.shellScreen;
     if (Get.currentRoute == route) {
       if (doExit) {
         Dialogs.showCustomAlertDialog(Get.context!, "Do you want to Exit ?", () => exit(0), () => Get.back());

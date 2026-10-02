@@ -1,6 +1,8 @@
 import 'package:get/get.dart';
 
 import 'app_pages.dart';
+import '../presentation/arena/shell/shell_controller.dart';
+import '../presentation/arena/shell/shell_view.dart';
 import '../presentation/general/auth_views/login/login_controller.dart';
 import '../presentation/general/auth_views/login/login_view.dart';
 import '../presentation/general/dashboard/dashboard_controller.dart';
@@ -33,5 +35,13 @@ List<GetPage> appRoutes() => [
     binding: DashBoardBinding(),
     transition: Transition.leftToRightWithFade,
     transitionDuration: const Duration(milliseconds: 500),
+  ),
+  // ArenaBook shell (all main tabs)
+  GetPage(
+    name: PageNames.shellScreen,
+    page: () => const ShellView(),
+    binding: ShellBinding(),
+    transition: Transition.fadeIn,
+    transitionDuration: const Duration(milliseconds: 400),
   ),
 ];

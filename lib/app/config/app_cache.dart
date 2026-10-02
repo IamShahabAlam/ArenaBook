@@ -6,6 +6,13 @@ class AppCache {
   static _URLs get urls => _URLs();
   static _Themes get themes => _Themes();
   static _General get general => _General();
+  static _Arena get arena => _Arena();
+}
+
+class _Arena {
+  final String currencySymbol = 'arena_currency_symbol';
+  final String cricketHourlyRate = 'arena_cricket_hourly_rate';
+  final String padelHourlyRate = 'arena_padel_hourly_rate';
 }
 
 class _User {
