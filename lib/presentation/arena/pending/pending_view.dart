@@ -7,6 +7,7 @@ import '../../../app/utils/formatters/arena_format.dart';
 import '../../../data/models/booking.dart';
 import '../shell/booking_actions.dart';
 import '../widgets/arena_widgets.dart';
+import '../widgets/motion.dart';
 
 class PendingView extends StatelessWidget {
   const PendingView({super.key});
@@ -41,7 +42,7 @@ class PendingView extends StatelessWidget {
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
-                        child: Text(ArenaFormat.money(total), style: context.text.displaySmall),
+                        child: AnimatedNumber(value: total, format: ArenaFormat.money, style: context.text.displaySmall),
                       ),
                       const SizedBox(height: 2),
                       Text('Total balance due from ${list.length} ${list.length == 1 ? 'booking' : 'bookings'}', style: context.text.bodySmall),
@@ -61,9 +62,15 @@ class PendingView extends StatelessWidget {
           SectionTitle(title: 'Bookings Requiring Balance', icon: Icons.warning_amber_rounded, iconColor: c.warningText),
           const SizedBox(height: 8),
           if (list.isEmpty)
-            const EmptyState(icon: Icons.check_circle_rounded, title: 'All Payments Settled!', message: 'There are no outstanding balances due.')
+            const EmptyState(icon: Icons.check_circle_rounded, title: 'All Payments Settled!', message: 'There are no outstanding balances due.').popIn(context)
           else
-            for (var i = 0; i < list.length; i++) ...[if (i > 0) const SizedBox(height: 10), _PendingCard(key: ValueKey(list[i].id), booking: list[i])],
+            for (var i = 0; i < list.length; i++) ...[
+              if (i > 0) const SizedBox(height: 10),
+              KeyedSubtree(
+                key: ValueKey(list[i].id),
+                child: _PendingCard(booking: list[i]).entrance(context, index: i),
+              ),
+            ],
         ],
       );
     });
@@ -71,7 +78,7 @@ class PendingView extends StatelessWidget {
 }
 
 class _PendingCard extends StatelessWidget {
-  const _PendingCard({super.key, required this.booking});
+  const _PendingCard({required this.booking});
 
   final Booking booking;
 

@@ -4,8 +4,10 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../app/config/app_strings.dart';
 import '../../../app/config/arena_theme.dart';
 import '../../../app/utils/custom_functions/arena_toast.dart';
+import '../../../app/utils/custom_widgets/arena_logo.dart';
 import '../../../data/rules/booking_rules.dart';
 import '../widgets/arena_widgets.dart';
+import '../widgets/motion.dart';
 import 'arena_dialog.dart';
 
 class AboutArenaDialog extends StatelessWidget {
@@ -33,6 +35,18 @@ class AboutArenaDialog extends StatelessWidget {
       actions: [SoftButton(label: 'Close', onPressed: () => Navigator.of(context).pop())],
       child: Column(
         children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              gradient: ArenaColors.ctaGradient,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [BoxShadow(color: ArenaColors.emerald.withValues(alpha: 0.28), blurRadius: 18)],
+            ),
+            alignment: Alignment.center,
+            child: ArenaLogo(size: 44, color: c.onAccent, semanticLabel: null), // name is right below
+          ).popIn(context),
+          const SizedBox(height: 12),
           Text(AppStrings.appName.toUpperCase(), style: context.text.titleMedium),
           Text(AppStrings.appTagline, textAlign: TextAlign.center, style: context.text.bodySmall),
           const SizedBox(height: 14),

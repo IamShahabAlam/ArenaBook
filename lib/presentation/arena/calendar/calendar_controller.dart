@@ -7,14 +7,22 @@ class CalendarController extends GetxController {
   late final month = _firstOfMonth(BookingService.to.now()).obs;
   late final selected = dateOnly(BookingService.to.now()).obs;
 
+  /// +1 when the last month change went forward, -1 when back; the grid slides in from that side.
+  int lastDirection = 1;
+
   static DateTime _firstOfMonth(DateTime d) => DateTime(d.year, d.month);
 
   /// [offset] months forward/back; DateTime normalises month 0 / 13 into the right year.
-  void shiftMonth(int offset) => month.value = DateTime(month.value.year, month.value.month + offset);
+  void shiftMonth(int offset) {
+    lastDirection = offset >= 0 ? 1 : -1;
+    month.value = DateTime(month.value.year, month.value.month + offset);
+  }
 
   void goToday() {
     final now = BookingService.to.now();
-    month.value = _firstOfMonth(now);
+    final target = _firstOfMonth(now);
+    lastDirection = target.isBefore(month.value) ? -1 : 1;
+    month.value = target;
     selected.value = dateOnly(now);
   }
 

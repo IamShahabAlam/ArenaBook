@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../app/config/arena_theme.dart';
 import '../../../data/models/sport.dart';
+import 'motion.dart';
 
 /// Visual identity per sport (icons + token colours).
 extension SportVisuals on Sport {
@@ -140,35 +141,77 @@ class _Segment<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.arena;
     final radius = BorderRadius.circular(dense ? 9 : 12);
+    final duration = context.motion(const Duration(milliseconds: 200));
     return Semantics(
       selected: active,
       button: true,
-      child: Material(
-        color: active ? c.cricket : Colors.transparent,
-        borderRadius: radius,
-        child: InkWell(
+      child: AnimatedContainer(
+        duration: duration,
+        curve: Curves.easeOut,
+        decoration: BoxDecoration(color: active ? c.cricket : c.cricket.withValues(alpha: 0), borderRadius: radius),
+        child: Material(
+          type: MaterialType.transparency,
           borderRadius: radius,
-          onTap: () {
-            HapticFeedback.selectionClick();
-            onTap();
-          },
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: dense ? 7 : 8, horizontal: 6),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (option.leading != null) ...[option.leading!, const SizedBox(width: 6)],
-                Flexible(
-                  child: Text(
-                    option.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.text.labelMedium?.copyWith(color: active ? c.onAccent : c.textSecondary, fontWeight: FontWeight.w700),
+          child: InkWell(
+            borderRadius: radius,
+            onTap: () {
+              HapticFeedback.selectionClick();
+              onTap();
+            },
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: dense ? 7 : 8, horizontal: 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (option.leading != null) ...[option.leading!, const SizedBox(width: 6)],
+                  Flexible(
+                    child: AnimatedDefaultTextStyle(
+                      duration: duration,
+                      style: context.text.labelMedium!.copyWith(color: active ? c.onAccent : c.textSecondary, fontWeight: FontWeight.w700),
+                      child: Text(option.label, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tappable tile whose fill and border animate between states (slot chips, date chips),
+/// with a slight lift when [selected].
+class AnimatedTile extends StatelessWidget {
+  const AnimatedTile({super.key, required this.color, required this.borderColor, required this.child, this.onTap, this.selected = false, this.radius = 12});
+
+  final Color color;
+  final Color borderColor;
+  final Widget child;
+  final VoidCallback? onTap;
+  final bool selected;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final duration = context.motion(const Duration(milliseconds: 180));
+    final shape = BorderRadius.circular(radius);
+    return AnimatedScale(
+      scale: selected ? 1.04 : 1,
+      duration: duration,
+      curve: Curves.easeOutBack,
+      child: AnimatedContainer(
+        duration: duration,
+        curve: Curves.easeOut,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: shape,
+          border: Border.all(color: borderColor),
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(borderRadius: shape, onTap: onTap, child: child),
         ),
       ),
     );

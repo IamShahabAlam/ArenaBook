@@ -15,6 +15,7 @@ import '../../../data/rules/invoice_text.dart';
 import '../shell/booking_actions.dart';
 import '../widgets/arena_widgets.dart';
 import '../widgets/booking_card.dart';
+import '../widgets/motion.dart';
 
 /// Digital receipt. Reads the booking reactively, so "Mark Paid" updates it in place.
 class InvoiceSheet extends StatelessWidget {
@@ -71,9 +72,17 @@ class InvoiceSheet extends StatelessWidget {
               height: 52,
               decoration: BoxDecoration(gradient: ArenaColors.ctaGradient, borderRadius: BorderRadius.circular(16)),
               child: Icon(b.sport.icon, color: c.onAccent, size: 26),
-            ),
+            ).popIn(context, delay: const Duration(milliseconds: 120)),
             const SizedBox(height: 10),
-            ArenaBadge(label: badgeLabel.toUpperCase(), color: badge.color),
+            // Crossfades when the status changes (e.g. "Balance Due" -> "Paid In Full" after Mark Paid).
+            AnimatedSwitcher(
+              duration: context.motion(const Duration(milliseconds: 280)),
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: ScaleTransition(scale: Tween<double>(begin: 0.9, end: 1).animate(animation), child: child),
+              ),
+              child: ArenaBadge(key: ValueKey(badgeLabel), label: badgeLabel.toUpperCase(), color: badge.color),
+            ),
             const SizedBox(height: 6),
             Text('#${b.id}', style: context.text.headlineSmall),
             Text('ARENABOOK · Official Ground Booking Receipt', style: context.text.bodySmall),

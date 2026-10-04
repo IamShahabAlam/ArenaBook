@@ -8,9 +8,9 @@ class AppAssets {
 }
 
 class _Images {
-  // Replace assets/images/app_logo.png with the project logo.
-  final String favIcon = "app_logo";
-  final String tFavIcon = "app_logo";
+  // ArenaBook stadium mark: white on transparent, cropped square from logo.png (the full-size original).
+  // Draw it with the ArenaLogo widget, which tints it to the theme.
+  final String logo = "logo_mark";
 
   final String placeHolder = "placehold";
   final String noImage = 'img'; // jpg format

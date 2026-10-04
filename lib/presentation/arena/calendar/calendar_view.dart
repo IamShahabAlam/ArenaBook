@@ -8,6 +8,7 @@ import '../../../data/models/booking.dart';
 import '../shell/booking_actions.dart';
 import '../widgets/arena_widgets.dart';
 import '../widgets/booking_card.dart';
+import '../widgets/motion.dart';
 import 'calendar_controller.dart';
 
 class CalendarView extends GetView<CalendarController> {
@@ -85,7 +86,28 @@ class CalendarView extends GetView<CalendarController> {
                 const SizedBox(height: 8),
                 Divider(color: c.border),
                 const SizedBox(height: 8),
-                _MonthGrid(month: month, selected: controller.selected.value, marked: controller.daysWithBookings, onSelect: controller.select),
+                AnimatedSwitcher(
+                  duration: context.motion(const Duration(milliseconds: 260)),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) {
+                    // The incoming month enters from the side we're moving to; the old one just fades.
+                    final incoming = child.key == ValueKey(month);
+                    final slide = Tween<Offset>(begin: Offset(0.12 * controller.lastDirection, 0), end: Offset.zero).animate(animation);
+                    return FadeTransition(
+                      opacity: animation,
+                      child: incoming ? SlideTransition(position: slide, child: child) : child,
+                    );
+                  },
+                  layoutBuilder: (current, previous) => Stack(alignment: Alignment.topCenter, children: [...previous, ?current]),
+                  child: _MonthGrid(
+                    key: ValueKey(month),
+                    month: month,
+                    selected: controller.selected.value,
+                    marked: controller.daysWithBookings,
+                    onSelect: controller.select,
+                  ),
+                ),
               ],
             );
           }),
@@ -128,7 +150,7 @@ class _NavButton extends StatelessWidget {
 }
 
 class _MonthGrid extends StatelessWidget {
-  const _MonthGrid({required this.month, required this.selected, required this.marked, required this.onSelect});
+  const _MonthGrid({super.key, required this.month, required this.selected, required this.marked, required this.onSelect});
 
   final DateTime month;
   final DateTime selected;

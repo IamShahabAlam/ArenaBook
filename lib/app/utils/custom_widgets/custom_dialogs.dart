@@ -3,8 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
-import 'package:arenabook/app/config/app_assets.dart';
-import '../utils.dart';
+import 'arena_logo.dart';
 import 'common_text.dart';
 
 import '../../config/app_fontweights.dart';
@@ -178,7 +177,7 @@ class MyDialog {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                     image: DecorationImage(
-                  image: AssetImage(Utils.getImagePath(AppAssets.images.favIcon)),
+                  image: AssetImage(ArenaLogo.assetPath),
                 ))).animate(onPlay: (controller) => controller.repeat()).shimmer(duration: const Duration(milliseconds: 800)),
           ),
         ),
@@ -200,11 +199,7 @@ class MyDialog {
             child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 10),
                     alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage(Utils.getImagePath(AppAssets.images.favIcon)),
-                      ),
-                    ))
+                    child: const ArenaLogo(size: 80, semanticLabel: 'Loading'))
                 .animate(
                   onPlay: (controller) => controller.repeat(),
                 )

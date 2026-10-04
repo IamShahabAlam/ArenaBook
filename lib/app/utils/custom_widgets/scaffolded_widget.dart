@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import '../../config/app_assets.dart';
 import '../../config/app_fontweights.dart';
 import '../../config/app_size_config.dart';
-import '../utils.dart';
+import 'arena_logo.dart';
 import 'common_text.dart';
 import 'custom_appbar.dart';
 
@@ -156,7 +155,7 @@ class ScafoldedWidget extends StatelessWidget {
                             alignment: Alignment.center,
                             child: ConstrainedBox(
                               constraints: const BoxConstraints.tightFor(height: 110),
-                              child: Image.asset(Utils.getImagePath(AppAssets.images.tFavIcon)),
+                              child: const ArenaLogo(size: 110),
                             ).marginOnly(top: 30).animateToBottom(),
                           ),
                         ),

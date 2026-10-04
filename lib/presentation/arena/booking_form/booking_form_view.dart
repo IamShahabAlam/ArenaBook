@@ -12,6 +12,7 @@ import '../../../data/models/time_range.dart';
 import '../../../data/rules/booking_rules.dart';
 import '../shell/booking_actions.dart';
 import '../widgets/arena_widgets.dart';
+import '../widgets/motion.dart';
 import 'booking_form_controller.dart';
 
 class BookingFormView extends GetView<BookingFormController> {
@@ -237,28 +238,24 @@ class _DatePicker extends GetView<BookingFormController> {
                   selected: active,
                   label: ArenaFormat.relativeDay(day, today),
                   excludeSemantics: true,
-                  child: Material(
+                  // No lift here: the fixed-height carousel would clip a scaled chip.
+                  child: AnimatedTile(
                     color: active ? c.cricket : c.surfaceMuted,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(color: active ? c.cricket : c.border),
-                    ),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () => controller.selectDate(day),
-                      child: SizedBox(
-                        width: 62,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(top.toUpperCase(), style: context.text.labelSmall?.copyWith(color: active ? c.onAccent : c.textSecondary)),
-                            Text('${day.day}', style: context.text.titleLarge?.copyWith(color: active ? c.onAccent : c.textPrimary)),
-                            Text(
-                              ArenaFormat.monthShort(day).toUpperCase(),
-                              style: context.text.labelSmall?.copyWith(color: active ? c.onAccent : c.textMuted, letterSpacing: 0.8),
-                            ),
-                          ],
-                        ),
+                    borderColor: active ? c.cricket : c.border,
+                    radius: 16,
+                    onTap: () => controller.selectDate(day),
+                    child: SizedBox(
+                      width: 62,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(top.toUpperCase(), style: context.text.labelSmall?.copyWith(color: active ? c.onAccent : c.textSecondary)),
+                          Text('${day.day}', style: context.text.titleLarge?.copyWith(color: active ? c.onAccent : c.textPrimary)),
+                          Text(
+                            ArenaFormat.monthShort(day).toUpperCase(),
+                            style: context.text.labelSmall?.copyWith(color: active ? c.onAccent : c.textMuted, letterSpacing: 0.8),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -345,6 +342,7 @@ class _PresetGrid extends GetView<BookingFormController> {
 
       return GridView.count(
         crossAxisCount: 3,
+        clipBehavior: Clip.none, // let a selected chip's 4% lift show at the grid edges
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         mainAxisSpacing: 8,
@@ -370,34 +368,29 @@ class _PresetGrid extends GetView<BookingFormController> {
                   excludeSemantics: true,
                   child: Opacity(
                     opacity: state == SlotState.past ? 0.55 : 1,
-                    child: Material(
+                    child: AnimatedTile(
                       color: bg,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: border),
-                      ),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: enabled
-                            ? () {
-                                HapticFeedback.selectionClick();
-                                controller.toggleSlot(slot);
-                              }
-                            : null,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
+                      borderColor: border,
+                      selected: state == SlotState.selected,
+                      onTap: enabled
+                          ? () {
+                              HapticFeedback.selectionClick();
+                              controller.toggleSlot(slot);
+                            }
+                          : null,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            TimeRange.formatMinute(slot.startMinute),
+                            style: context.text.labelMedium?.copyWith(color: fg, fontWeight: state == SlotState.selected ? FontWeight.w800 : FontWeight.w600),
+                          ),
+                          if (tag != null)
                             Text(
-                              TimeRange.formatMinute(slot.startMinute),
-                              style: context.text.labelMedium?.copyWith(color: fg, fontWeight: state == SlotState.selected ? FontWeight.w800 : FontWeight.w600),
+                              tag,
+                              style: context.text.labelSmall?.copyWith(color: fg, fontSize: 9, fontWeight: FontWeight.w800),
                             ),
-                            if (tag != null)
-                              Text(
-                                tag,
-                                style: context.text.labelSmall?.copyWith(color: fg, fontSize: 9, fontWeight: FontWeight.w800),
-                              ),
-                          ],
-                        ),
+                        ],
                       ),
                     ),
                   ),
@@ -570,7 +563,7 @@ class _PaymentCard extends GetView<BookingFormController> {
             Row(
               children: [
                 Expanded(child: Text('Total Ground Fee', style: context.text.bodySmall)),
-                Text(ArenaFormat.money(total), style: context.text.titleLarge),
+                AnimatedNumber(value: total, format: ArenaFormat.money, style: context.text.titleLarge),
               ],
             ),
             if (controller.totalMinutes > 0)
@@ -631,7 +624,11 @@ class _PaymentCard extends GetView<BookingFormController> {
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: c.warning.withValues(alpha: 0.35)),
                         ),
-                        child: Text(ArenaFormat.money(controller.balance), style: context.text.labelLarge?.copyWith(color: c.warningText)),
+                        child: AnimatedNumber(
+                          value: controller.balance,
+                          format: ArenaFormat.money,
+                          style: context.text.labelLarge?.copyWith(color: c.warningText),
+                        ),
                       ),
                     ],
                   ),

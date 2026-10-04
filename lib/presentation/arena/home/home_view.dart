@@ -7,6 +7,7 @@ import '../shell/booking_actions.dart';
 import '../shell/shell_controller.dart';
 import '../widgets/arena_widgets.dart';
 import '../widgets/booking_card.dart';
+import '../widgets/motion.dart';
 import '../widgets/sport_filter.dart';
 import 'home_controller.dart';
 
@@ -33,14 +34,18 @@ class HomeView extends GetView<HomeController> {
             children: [
               _MetricCard(
                 title: 'Total Slots',
-                value: ArenaFormat.number(s.totalBookings),
+                value: s.totalBookings,
+                format: ArenaFormat.number,
+                index: 0,
                 caption: 'Booked entries',
                 icon: Icons.event_available_rounded,
                 accent: c.cricketText,
               ),
               _MetricCard(
                 title: 'Pending Dues',
-                value: ArenaFormat.money(s.pendingAmount),
+                value: s.pendingAmount,
+                format: ArenaFormat.money,
+                index: 1,
                 caption: '${s.pendingCount} ${s.pendingCount == 1 ? 'booking' : 'bookings'} with dues',
                 icon: Icons.history_rounded,
                 accent: c.warningText,
@@ -49,14 +54,18 @@ class HomeView extends GetView<HomeController> {
               ),
               _MetricCard(
                 title: 'Collected',
-                value: ArenaFormat.money(s.collectedAmount),
+                value: s.collectedAmount,
+                format: ArenaFormat.money,
+                index: 2,
                 caption: 'Advance & settled payments',
                 icon: Icons.account_balance_wallet_rounded,
                 accent: c.limeText,
               ),
               _MetricCard(
                 title: 'Total Value',
-                value: ArenaFormat.money(s.totalValue),
+                value: s.totalValue,
+                format: ArenaFormat.money,
+                index: 3,
                 caption: 'Gross booking revenue',
                 icon: Icons.receipt_long_rounded,
                 accent: c.padelText,
@@ -90,7 +99,7 @@ class HomeView extends GetView<HomeController> {
               GradientButton(label: 'Book Slot', icon: Icons.arrow_forward_rounded, expanded: false, compact: true, onPressed: BookingActions.newBooking),
             ],
           ),
-        ),
+        ).entrance(context, index: 4),
         const SizedBox(height: 18),
         SectionTitle(
           title: 'Upcoming & Active Slots',
@@ -119,6 +128,8 @@ class _MetricCard extends StatelessWidget {
   const _MetricCard({
     required this.title,
     required this.value,
+    required this.format,
+    required this.index,
     required this.caption,
     required this.icon,
     required this.accent,
@@ -127,7 +138,9 @@ class _MetricCard extends StatelessWidget {
   });
 
   final String title;
-  final String value;
+  final int value;
+  final String Function(int value) format;
+  final int index; // stagger position
   final String caption;
   final IconData icon;
   final Color accent;
@@ -139,7 +152,7 @@ class _MetricCard extends StatelessWidget {
     final c = context.arena;
     return Semantics(
       button: onTap != null,
-      label: '$title: $value. $caption',
+      label: '$title: ${format(value)}. $caption',
       excludeSemantics: true,
       child: ArenaCard(
         onTap: onTap,
@@ -170,7 +183,11 @@ class _MetricCard extends StatelessWidget {
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child: Text(value, style: context.text.headlineSmall?.copyWith(color: highlight ? c.warningText : c.textPrimary)),
+              child: AnimatedNumber(
+                value: value,
+                format: format,
+                style: context.text.headlineSmall?.copyWith(color: highlight ? c.warningText : c.textPrimary),
+              ),
             ),
             Text(
               caption,
@@ -181,6 +198,6 @@ class _MetricCard extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ).entrance(context, index: index);
   }
 }

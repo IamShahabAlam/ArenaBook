@@ -13,7 +13,9 @@ import '../dialogs/info_dialogs.dart';
 import '../dialogs/settings_dialog.dart';
 import '../home/home_view.dart';
 import '../pending/pending_view.dart';
+import '../../../app/utils/custom_widgets/arena_logo.dart';
 import '../widgets/arena_widgets.dart';
+import '../widgets/motion.dart';
 import 'booking_actions.dart';
 import 'shell_controller.dart';
 
@@ -39,12 +41,20 @@ class ShellView extends GetView<ShellController> {
             children: [
               const _ArenaHeader(),
               Expanded(
-                child: Obx(
-                  () => IndexedStack(
-                    index: controller.tab.value.index,
-                    children: const [HomeView(), BookingsView(), BookingFormView(), PendingView(), CalendarView()],
-                  ),
-                ),
+                child: Obx(() {
+                  final current = controller.tab.value;
+                  Widget tab(ArenaTab t, Widget view) => TabFade(active: current == t, child: view);
+                  return IndexedStack(
+                    index: current.index,
+                    children: [
+                      tab(ArenaTab.home, const HomeView()),
+                      tab(ArenaTab.bookings, const BookingsView()),
+                      tab(ArenaTab.addBooking, const BookingFormView()),
+                      tab(ArenaTab.pending, const PendingView()),
+                      tab(ArenaTab.calendar, const CalendarView()),
+                    ],
+                  );
+                }),
               ),
             ],
           ),
@@ -167,7 +177,19 @@ class _ArenaBottomNav extends GetView<ShellController> {
                           border: Border.all(color: c.background, width: 4),
                           boxShadow: [BoxShadow(color: ArenaColors.emerald.withValues(alpha: 0.35), blurRadius: 18)],
                         ),
-                        child: Icon(current == ArenaTab.addBooking ? Icons.edit_note_rounded : Icons.add_rounded, color: c.onAccent, size: 26),
+                        child: AnimatedSwitcher(
+                          duration: context.motion(const Duration(milliseconds: 250)),
+                          transitionBuilder: (child, animation) => RotationTransition(
+                            turns: Tween<double>(begin: -0.25, end: 0).animate(animation),
+                            child: FadeTransition(opacity: animation, child: child),
+                          ),
+                          child: Icon(
+                            current == ArenaTab.addBooking ? Icons.edit_note_rounded : Icons.add_rounded,
+                            key: ValueKey(current == ArenaTab.addBooking),
+                            color: c.onAccent,
+                            size: 26,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -196,6 +218,7 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.arena;
     final color = active ? c.cricketText : c.textSecondary;
+    final duration = context.motion(const Duration(milliseconds: 220));
     return Semantics(
       button: true,
       selected: active,
@@ -210,11 +233,20 @@ class _NavItem extends StatelessWidget {
             Stack(
               clipBehavior: Clip.none,
               children: [
-                Icon(icon, color: color, size: 23),
-                if (dot)
-                  Positioned(
-                    right: -3,
-                    top: -1,
+                AnimatedScale(
+                  scale: active ? 1.12 : 1,
+                  duration: duration,
+                  curve: Curves.easeOutBack,
+                  child: Icon(icon, color: color, size: 23),
+                ),
+                // Always present; scales in/out so the dot "pops" instead of blinking.
+                Positioned(
+                  right: -3,
+                  top: -1,
+                  child: AnimatedScale(
+                    scale: dot ? 1 : 0,
+                    duration: duration,
+                    curve: Curves.easeOutBack,
                     child: Container(
                       width: 8,
                       height: 8,
@@ -225,6 +257,7 @@ class _NavItem extends StatelessWidget {
                       ),
                     ),
                   ),
+                ),
               ],
             ),
             const SizedBox(height: 3),
@@ -246,6 +279,7 @@ class _ArenaDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.arena;
 
+    var itemIndex = 0;
     Widget item(IconData icon, Color iconColor, String label, Future<void> Function() open) => Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
@@ -265,7 +299,7 @@ class _ArenaDrawer extends StatelessWidget {
           },
         ),
       ),
-    );
+    ).entrance(context, index: itemIndex++, delay: const Duration(milliseconds: 120)); // replays each time the drawer opens
 
     return Drawer(
       width: 300,
@@ -282,8 +316,9 @@ class _ArenaDrawer extends StatelessWidget {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(gradient: ArenaColors.ctaGradient, borderRadius: BorderRadius.circular(14)),
-                    child: Icon(Icons.emoji_events_rounded, color: c.onAccent),
-                  ),
+                    alignment: Alignment.center,
+                    child: ArenaLogo(size: 30, color: c.onAccent, semanticLabel: null), // wordmark next to it says the name
+                  ).popIn(context),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -309,10 +344,7 @@ class _ArenaDrawer extends StatelessWidget {
                 child: Text('${AppStrings.appName} Platform', style: context.text.labelMedium?.copyWith(color: c.textSecondary)),
               ),
               Center(
-                child: Text(
-                  'App Version ${AppStrings.kappVersionWithDate} (Build ${AppStrings.kappBuildNumber})',
-                  style: context.text.labelSmall?.copyWith(color: c.textMuted),
-                ),
+                child: Text('${AppStrings.kappVersionWithDate} (${AppStrings.kappBuildNumber})', style: context.text.labelSmall?.copyWith(color: c.textMuted)),
               ),
             ],
           ),

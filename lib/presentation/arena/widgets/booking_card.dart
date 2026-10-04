@@ -6,6 +6,7 @@ import '../../../app/utils/formatters/arena_format.dart';
 import '../../../data/models/booking.dart';
 import '../shell/booking_actions.dart';
 import 'arena_widgets.dart';
+import 'motion.dart';
 
 /// Status badge text + colour, shared by cards and the invoice.
 ({String label, Color color}) bookingBadge(Booking b, ArenaColors c) => switch (b.status) {
@@ -62,7 +63,10 @@ class BookingCard extends StatelessWidget {
               // Capped so a long "Due: Rs 12,345" can never squeeze the name to nothing.
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 120),
-                child: ArenaBadge(label: badge.label, color: badge.color),
+                child: AnimatedSwitcher(
+                  duration: context.motion(const Duration(milliseconds: 250)),
+                  child: ArenaBadge(key: ValueKey(badge.label), label: badge.label, color: badge.color),
+                ),
               ),
             ],
           ),
@@ -127,10 +131,18 @@ class BookingList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (bookings.isEmpty) return empty;
+    if (bookings.isEmpty) return empty.entrance(context);
     return Column(
       children: [
-        for (var i = 0; i < bookings.length; i++) ...[if (i > 0) const SizedBox(height: 10), BookingCard(key: ValueKey(bookings[i].id), booking: bookings[i])],
+        for (var i = 0; i < bookings.length; i++) ...[
+          if (i > 0) const SizedBox(height: 10),
+          // Key on the outermost widget, so the entrance state follows the booking, not its position:
+          // a newly added booking animates in, existing cards stay put.
+          KeyedSubtree(
+            key: ValueKey(bookings[i].id),
+            child: BookingCard(booking: bookings[i]).entrance(context, index: i),
+          ),
+        ],
       ],
     );
   }

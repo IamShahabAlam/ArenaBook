@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../../app/config/app_assets.dart';
 import '../../../../app/config/app_fontweights.dart';
 import '../../../../app/config/app_paddings.dart';
 import '../../../../app/config/app_size_config.dart';
 import '../../../../app/config/app_strings.dart';
 import '../../../../app/service/getx_service/app_dev_mode_service.dart';
+import '../../../../app/utils/custom_widgets/arena_logo.dart';
 import '../../../../app/utils/custom_widgets/common_text.dart';
 import '../../../../app/utils/custom_widgets/custom_textfield.dart';
 import '../../../../app/utils/custom_widgets/gradient_button.dart';
-import '../../../../app/utils/utils.dart';
 import 'login_controller.dart';
 
 class LoginScreen extends GetView<LoginController> {
@@ -32,9 +31,7 @@ class LoginScreen extends GetView<LoginController> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Hidden gesture (double tap, swipe up, swipe right) on the logo toggles Developer Mode
-                  DevGestureDetector(
-                    child: Image.asset(Utils.getImagePath(AppAssets.images.favIcon), height: 90),
-                  ),
+                  DevGestureDetector(child: const Center(child: ArenaLogo(size: 90))),
                   0.02.ph,
                   CommonText(
                     text: AppStrings.appName.isEmpty ? 'Welcome' : AppStrings.appName,
