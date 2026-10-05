@@ -435,23 +435,26 @@ class EmptyState extends StatelessWidget {
     final c = context.arena;
     return ArenaCard(
       padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
-      child: Column(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(color: c.cricket.withValues(alpha: 0.12), shape: BoxShape.circle),
-            child: Icon(icon, color: c.cricketText, size: 22),
-          ),
-          const SizedBox(height: 10),
-          if (title != null) Text(title!, style: context.text.titleSmall, textAlign: TextAlign.center),
-          Text(
-            message,
-            style: context.text.bodySmall?.copyWith(color: c.textMuted),
-            textAlign: TextAlign.center,
-          ),
-          if (action != null) ...[const SizedBox(height: 12), action!],
-        ],
+      child: SizedBox(
+        width: double.infinity,
+        child: Column(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(color: c.cricket.withValues(alpha: 0.12), shape: BoxShape.circle),
+              child: Icon(icon, color: c.cricketText, size: 22),
+            ),
+            const SizedBox(height: 10),
+            if (title != null) Text(title!, style: context.text.titleSmall, textAlign: TextAlign.center),
+            Text(
+              message,
+              style: context.text.bodySmall?.copyWith(color: c.textMuted),
+              textAlign: TextAlign.center,
+            ),
+            if (action != null) ...[const SizedBox(height: 12), action!],
+          ],
+        ),
       ),
     );
   }

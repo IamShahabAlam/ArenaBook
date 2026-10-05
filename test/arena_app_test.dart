@@ -16,6 +16,7 @@ import 'package:arenabook/data/repositories/booking/booking_repository.dart';
 import 'package:arenabook/data/rules/invoice_text.dart';
 import 'package:arenabook/presentation/arena/booking_form/booking_form_view.dart';
 import 'package:arenabook/presentation/arena/shell/shell_controller.dart';
+import 'package:arenabook/presentation/arena/widgets/arena_widgets.dart';
 import 'package:arenabook/presentation/arena/shell/shell_view.dart';
 
 final now = DateTime(2026, 10, 1, 12, 0);

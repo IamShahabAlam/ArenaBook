@@ -26,6 +26,7 @@ class HomeView extends GetView<HomeController> {
           final s = controller.stats;
           return GridView.count(
             crossAxisCount: 2,
+            padding: EdgeInsets.zero,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: 12,

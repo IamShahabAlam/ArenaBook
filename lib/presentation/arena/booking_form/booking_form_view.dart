@@ -343,6 +343,7 @@ class _PresetGrid extends GetView<BookingFormController> {
       return GridView.count(
         crossAxisCount: 3,
         clipBehavior: Clip.none, // let a selected chip's 4% lift show at the grid edges
+        padding: EdgeInsets.zero, // without it the grid inherits the nav bar inset (see home_view)
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         mainAxisSpacing: 8,

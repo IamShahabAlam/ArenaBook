@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+// import 'package:device_preview/device_preview.dart';
 import 'app/config/app_strings.dart';
 import 'app/config/arena_theme.dart';
 import 'app/service/service_handler.dart/theme_store.dart';
@@ -25,7 +26,10 @@ Future<void> main() async {
     return;
   }
 
-  runApp(const MyApp());
+  runApp(
+    // DevicePreview(enabled: !kReleaseMode, builder: (context) => const MyApp()));
+    const MyApp(),
+  );
 }
 
 void restartApp() {
@@ -50,6 +54,9 @@ class MyApp extends StatelessWidget {
     return Obx(() {
       final isDark = ThemeStore.to.isDarkMode.value;
       return GetMaterialApp(
+        // useInheritedMediaQuery: true,
+        // locale: DevicePreview.locale(context),
+        // builder: DevicePreview.appBuilder,
         debugShowCheckedModeBanner: false,
         theme: ArenaTheme.light,
         darkTheme: ArenaTheme.dark,
