@@ -69,7 +69,7 @@ Views never call repositories, and repositories never touch UI (apart from APIPr
 4. Fill in `lib/data/providers/api_endpoints.dart`: at least `loginUrl` / `logoutUrl`.
 5. Map your login response in `LoginController.login()` (token / userId / profile keys).
 6. Adjust `ApiUtility.requestHeaders()` to your backend's auth header names.
-7. Replace `assets/images/app_logo.png` with the project logo.
+7. Replace `assets/images/logo.png` with the project logo (1024x1024, white on transparent; drawn via `ArenaLogo`, which tints it).
 8. Optional: change the default palette in `app_color_schemes.dart`, or set a seed color through `ThemeManager.saveThemeData(...)`.
 
 ## Adding a feature (the pattern)

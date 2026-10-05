@@ -8,9 +8,9 @@ class AppAssets {
 }
 
 class _Images {
-  // ArenaBook stadium mark: white on transparent, cropped square from logo.png (the full-size original).
-  // Draw it with the ArenaLogo widget, which tints it to the theme.
-  final String logo = "logo_mark";
+  // ArenaBook "Square Arena" mark: 1024x1024, white on transparent.
+  // Always draw it with the ArenaLogo widget, which tints it to the theme.
+  final String logo = "logo";
 
   final String placeHolder = "placehold";
   final String noImage = 'img'; // jpg format

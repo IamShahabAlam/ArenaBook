@@ -131,7 +131,7 @@ class _OrbitingLogo extends StatelessWidget {
         boxShadow: [BoxShadow(color: ArenaColors.emerald.withValues(alpha: 0.35), blurRadius: 22)],
       ),
       alignment: Alignment.center,
-      child: ArenaLogo(size: 46, color: c.onAccent),
+      child: ArenaLogo(size: 54, color: c.onAccent), // wide mark: needs a bigger box to look balanced in the round disc
     );
 
     Widget orbit = CustomPaint(
