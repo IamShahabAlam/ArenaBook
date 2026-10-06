@@ -10,8 +10,6 @@ import '../../../data/models/sport.dart';
 import '../../../data/models/time_range.dart';
 import '../../../data/rules/booking_rules.dart';
 
-enum SlotMode { preset, custom }
-
 /// State of the New / Edit booking form. Lives as long as the shell, so a half-filled form
 /// survives a quick look at another tab.
 class BookingFormController extends GetxController {
@@ -26,10 +24,9 @@ class BookingFormController extends GetxController {
   final courtId = Court.forSport(Sport.cricket).first.id.obs;
   // Always from the service clock (never DateTime.now()), so tests and the app agree on "today".
   late final date = dateOnly(_service.now()).obs;
-  final mode = SlotMode.preset.obs;
-  final selectedSlots = <TimeRange>{}.obs;
-  final customStart = (13 * 60 + 30).obs;
-  final customEnd = (14 * 60 + 30).obs;
+  final startMinute = RxnInt(); // chosen start time, null = not picked yet
+  final duration = 60.obs; // minutes, in BookingRules.slotStep steps
+  late final period = _defaultPeriod(date.value).obs; // which 6-hour block of start times is shown
   final advance = 0.obs;
   final discount = 0.obs;
   final notesLength = 0.obs;
@@ -54,7 +51,7 @@ class BookingFormController extends GetxController {
     super.onInit();
     notesCtrl.addListener(() => notesLength.value = notesCtrl.text.length);
     // When the fee drops (fewer slots, rate change), cap the discount and advance to it.
-    everAll([selectedSlots, customStart, customEnd, mode, sport, _settings.cricketHourlyRate.rx, _settings.padelHourlyRate.rx], (_) => _capMoney());
+    everAll([startMinute, duration, sport, _settings.cricketHourlyRate.rx, _settings.padelHourlyRate.rx], (_) => _capMoney());
   }
 
   @override
@@ -75,14 +72,11 @@ class BookingFormController extends GetxController {
     return _settings.rateFor(sport.value);
   }
 
-  TimeRange? get customRange => TimeRange.tryCreate(customStart.value, customEnd.value);
-
+  /// One continuous range: start + duration.
   List<TimeRange> get chosenSlots {
-    if (mode.value == SlotMode.custom) {
-      final range = customRange;
-      return range == null ? const [] : [range];
-    }
-    return selectedSlots.toList()..sort();
+    final start = startMinute.value;
+    final range = start == null ? null : TimeRange.tryCreate(start, start + duration.value);
+    return range == null ? const [] : [range];
   }
 
   int get totalMinutes => chosenSlots.fold(0, (sum, s) => sum + s.durationMinutes);
@@ -100,17 +94,32 @@ class BookingFormController extends GetxController {
 
   Set<TimeRange> get _keepPast => _original != null && isSameDay(_original!.date, date.value) ? _original!.slots.toSet() : const {};
 
-  SlotState slotState(TimeRange slot) {
-    final state = BookingRules.stateOf(slot, date: date.value, now: _service.now(), occupied: occupied, selected: selectedSlots);
-    // Slots this booking already had stay selectable when editing, even after they started.
-    if (state == SlotState.past && _keepPast.contains(slot)) return SlotState.available;
+  /// Chip state of the start time [start]: inside the chosen range = selected, else booked / past / free.
+  SlotState cellState(int start) {
+    final chosen = chosenSlots.firstOrNull;
+    if (chosen != null && start >= chosen.startMinute && start < chosen.endMinute) return SlotState.selected;
+    final state = BookingRules.cellState(start, date: date.value, now: _service.now(), occupied: occupied);
+    // Editing: the booking's own time stays selectable even after it started.
+    final cell = TimeRange(start, start + BookingRules.slotStep);
+    if (state == SlotState.past && _keepPast.any(cell.overlaps)) return SlotState.available;
     return state;
   }
 
-  /// Live problem with the custom range (null = fine).
-  String? get customRangeError {
-    if (customRange == null) return 'End time must be after start time';
-    return BookingRules.validateSlots(chosenSlots, date: date.value, now: _service.now(), occupied: occupied, keepPastSlots: _keepPast);
+  /// Longest duration from the chosen start before the next booking (or midnight).
+  int get maxDuration {
+    final start = startMinute.value;
+    return start == null ? 0 : BookingRules.maxDuration(start, occupied: occupied);
+  }
+
+  /// Live problem with the chosen time (null = fine or nothing picked).
+  String? get timeError => startMinute.value == null
+      ? null
+      : BookingRules.validateSlots(chosenSlots, date: date.value, now: _service.now(), occupied: occupied, keepPastSlots: _keepPast);
+
+  /// Today: the period we're in now. Other days: evening, the busiest time.
+  DayPart _defaultPeriod(DateTime day) {
+    final now = _service.now();
+    return isSameDay(day, now) ? DayPart.of(now.hour * 60 + now.minute) : DayPart.evening;
   }
 
   // ─────────────── Inputs ───────────────
@@ -119,35 +128,45 @@ class BookingFormController extends GetxController {
     if (sport.value == value) return;
     sport.value = value;
     courtId.value = Court.forSport(value).first.id;
-    selectedSlots.clear();
+    startMinute.value = null;
   }
 
   void selectCourt(String id) {
     if (courtId.value == id) return;
     courtId.value = id;
-    selectedSlots.clear();
+    startMinute.value = null;
   }
 
   void selectDate(DateTime value) {
     final day = dateOnly(value);
     if (isSameDay(day, date.value)) return;
     date.value = day;
-    selectedSlots.clear();
+    startMinute.value = null;
+    period.value = _defaultPeriod(day);
   }
 
-  void toggleSlot(TimeRange slot) {
-    final state = slotState(slot);
-    if (state == SlotState.selected) {
-      selectedSlots.remove(slot);
-    } else if (state == SlotState.available) {
-      selectedSlots.add(slot);
+  void selectPeriod(DayPart value) => period.value = value;
+
+  /// Tap a free start time to pick it (tap the chosen start again to clear).
+  /// The duration shrinks if the next booking leaves less room.
+  void selectStart(int start) {
+    if (startMinute.value == start) {
+      startMinute.value = null;
+      return;
     }
+    final state = cellState(start);
+    if (state != SlotState.available && state != SlotState.selected) return;
+    startMinute.value = start;
+    final room = maxDuration;
+    if (duration.value > room) duration.value = room;
   }
 
-  void setMode(SlotMode value) => mode.value = value;
-
-  void setCustomStart(TimeOfDay t) => customStart.value = t.hour * 60 + t.minute;
-  void setCustomEnd(TimeOfDay t) => customEnd.value = t.hour * 60 + t.minute;
+  /// +/- one step; stays within 30 min .. the room before the next booking.
+  void changeDuration(int steps) {
+    final next = duration.value + steps * BookingRules.slotStep;
+    final max = startMinute.value == null ? TimeRange.minutesPerDay : maxDuration;
+    if (next >= BookingRules.slotStep && next <= max) duration.value = next;
+  }
 
   void onAdvanceChanged(String text) {
     final parsed = int.tryParse(BookingRules.digitsOnly(text)) ?? 0;
@@ -162,13 +181,6 @@ class BookingFormController extends GetxController {
     discount.value = capped;
     if (capped != parsed) _write(discountCtrl, capped);
     _capMoney(); // a bigger discount can push the advance above what's payable
-  }
-
-  /// Percent of the payable amount (after discount).
-  void setAdvancePercent(int percent) {
-    final value = BookingRules.advanceForPercent(payable, percent);
-    advance.value = value;
-    _writeAdvance(value);
   }
 
   void _capMoney() {
@@ -221,17 +233,18 @@ class BookingFormController extends GetxController {
     _writeAdvance(b.amountCollected);
   }
 
-  /// Copies customer, sport and court to today, pre-selecting the same times when still free.
-  /// Returns how many of the original slots could be pre-selected.
-  int loadForRepeat(Booking b) {
+  /// Copies customer, sport and court to today, pre-selecting the same time when still free.
+  /// Returns true when the time could be kept.
+  bool loadForRepeat(Booking b) {
     _clear();
     _fillCustomer(b);
     sport.value = b.sport;
     courtId.value = b.courtId;
     date.value = dateOnly(_service.now());
-    final free = b.slots.where((s) => BookingRules.validateSlots([s], date: date.value, now: _service.now(), occupied: occupied) == null).toList();
-    if (free.isNotEmpty) _applySlots(free);
-    return free.length;
+    final range = TimeRange(b.slots.first.startMinute, b.slots.last.endMinute);
+    final free = BookingRules.validateSlots([range], date: date.value, now: _service.now(), occupied: occupied) == null;
+    if (free) _applySlots(b.slots);
+    return free;
   }
 
   void _fillCustomer(Booking b) {
@@ -241,16 +254,11 @@ class BookingFormController extends GetxController {
     notesCtrl.text = b.notes;
   }
 
+  /// Shows a saved booking's time (first start to last end) as start + duration.
   void _applySlots(List<TimeRange> slots) {
-    final allPreset = slots.every(BookingRules.presetSlots.contains);
-    if (allPreset) {
-      mode.value = SlotMode.preset;
-      selectedSlots.assignAll(slots);
-    } else {
-      mode.value = SlotMode.custom;
-      customStart.value = slots.first.startMinute;
-      customEnd.value = slots.last.endMinute;
-    }
+    startMinute.value = slots.first.startMinute;
+    duration.value = slots.last.endMinute - slots.first.startMinute;
+    period.value = DayPart.of(slots.first.startMinute);
   }
 
   void _clear() {
@@ -259,11 +267,10 @@ class BookingFormController extends GetxController {
     for (final c in [nameCtrl, phoneCtrl, emailCtrl, notesCtrl]) {
       c.clear();
     }
-    selectedSlots.clear();
-    mode.value = SlotMode.preset;
-    customStart.value = 13 * 60 + 30;
-    customEnd.value = 14 * 60 + 30;
+    startMinute.value = null;
+    duration.value = 60;
     date.value = dateOnly(_service.now());
+    period.value = _defaultPeriod(date.value);
     advance.value = 0;
     _writeAdvance(0);
     discount.value = 0; // also not copied by Repeat: a discount is a one-off

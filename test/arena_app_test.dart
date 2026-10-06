@@ -76,6 +76,13 @@ Booking seeded({required String id, required int hour, int advance = 500, DateTi
 /// The booking form's own list (IndexedStack builds every tab, so "the n-th Scrollable" is fragile).
 final formScrollable = find.descendant(of: find.byType(BookingFormView), matching: find.byType(Scrollable)).first;
 
+/// Scrolls [target] to the middle of the form, clear of the floating bottom nav (a tap there would miss).
+Future<void> reveal(WidgetTester tester, Finder target, {double delta = 250}) async {
+  await tester.scrollUntilVisible(target, delta, scrollable: formScrollable);
+  await Scrollable.ensureVisible(tester.element(target), alignment: 0.5);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   tearDown(() async => Get.deleteAll(force: true));
 
@@ -91,8 +98,8 @@ void main() {
     expect(find.text('Create New Booking'), findsOneWidget);
 
     // 9AM .. 12PM have started at 12:00; 2PM is free.
-    final slot2pm = find.bySemanticsLabel('2PM - 3PM');
-    await tester.scrollUntilVisible(slot2pm, 200, scrollable: formScrollable);
+    final slot2pm = find.bySemanticsLabel('2PM');
+    await reveal(tester, slot2pm);
     await tester.tap(slot2pm);
     await tester.pump();
 
@@ -117,7 +124,7 @@ void main() {
     // The same slot is now blocked in the form (tapping "+" works even while the success toast is showing)
     await tester.tap(find.byTooltip('New booking'));
     await tester.pumpAndSettle();
-    final booked = find.bySemanticsLabel('2PM - 3PM, booked');
+    final booked = find.bySemanticsLabel('2PM, booked');
     await tester.scrollUntilVisible(booked, -300, scrollable: formScrollable); // form kept its scroll position
     expect(booked, findsOneWidget);
 
@@ -173,6 +180,68 @@ void main() {
     }
   }
 
+  testWidgets('time picker: 11PM booking runs past midnight, stopped by next-day booking', (tester) async {
+    final semantics = tester.ensureSemantics();
+    // Tomorrow 12:30-1:30 AM is already booked on cricket-1.
+    final early = seeded(id: 'TRF-1001', hour: 0, date: DateTime(2026, 10, 2));
+    await setUpServices(
+      seed: [
+        early.copyWith(slots: [const TimeRange(30, 90)]),
+      ],
+    );
+    await pumpApp(tester, dark: true);
+    await tester.tap(find.byTooltip('New booking'));
+    await tester.pumpAndSettle();
+    final form = BookingFormController.to;
+
+    await reveal(tester, find.text('Evening'));
+    await tester.tap(find.text('Evening'));
+    await tester.pumpAndSettle();
+    final chip11 = find.bySemanticsLabel('11PM');
+    await reveal(tester, chip11);
+    await tester.tap(chip11);
+    await tester.pump();
+    expect(form.chosenSlots.single.label, '11PM - 12AM'); // default 1 h
+
+    await tester.tap(find.byTooltip('Longer'));
+    await tester.pump();
+    expect(form.chosenSlots.single.label, '11PM - 12:30AM (next day)');
+    expect(find.textContaining('(next day)'), findsOneWidget); // shown in the picker summary
+
+    await tester.tap(find.byTooltip('Longer'));
+    await tester.pump();
+    expect(form.duration.value, 90); // capped: tomorrow 12:30 AM is taken
+
+    semantics.dispose();
+    await disposeApp(tester);
+  });
+
+  testWidgets('time picker: duration stops at the next booking', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await setUpServices(seed: [seeded(id: 'TRF-1001', hour: 15)]); // 3-4 PM taken on cricket-1
+    await pumpApp(tester, dark: true);
+    await tester.tap(find.byTooltip('New booking'));
+    await tester.pumpAndSettle();
+    final form = BookingFormController.to;
+
+    final chip230 = find.bySemanticsLabel('2:30PM');
+    await reveal(tester, chip230);
+    expect(find.bySemanticsLabel('3PM, booked'), findsOneWidget);
+    expect(find.bySemanticsLabel('12PM, past'), findsOneWidget); // clock is 12:00
+
+    await tester.tap(chip230);
+    await tester.pump();
+    expect(form.duration.value, 30); // shrunk from 1 h: only 30 min until 3 PM
+    expect(form.chosenSlots.single.label, '2:30PM - 3PM');
+
+    await tester.tap(find.byTooltip('Longer'));
+    await tester.pump();
+    expect(form.duration.value, 30); // still: would overlap the 3 PM booking
+
+    semantics.dispose();
+    await disposeApp(tester);
+  });
+
   test('invoice text', () {
     final b = seeded(id: 'TRF-1001', hour: 20);
     final text = InvoiceText.whatsApp(b, currency: 'Rs');
@@ -216,12 +285,12 @@ void main() {
       }
 
       // Pick 2PM (fee 1500), give 200 off: payable and balance follow.
-      final slot = find.bySemanticsLabel('2PM - 3PM');
+      final slot = find.bySemanticsLabel('2PM');
       final semantics = tester.ensureSemantics();
-      await tester.scrollUntilVisible(slot, 200, scrollable: formScrollable);
+      await reveal(tester, slot);
       await tester.tap(slot);
       await tester.pump();
-      await tester.scrollUntilVisible(field, 300, scrollable: formScrollable);
+      await reveal(tester, field);
       await tester.enterText(field, '200');
       await tester.pumpAndSettle();
       expect(BookingFormController.to.payable, 1300);

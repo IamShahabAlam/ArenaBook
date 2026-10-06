@@ -8,12 +8,12 @@ import '../../../app/service/service_handler.dart/settings_store.dart';
 import '../../../app/utils/formatters/arena_format.dart';
 import '../../../data/models/booking.dart';
 import '../../../data/models/sport.dart';
-import '../../../data/models/time_range.dart';
 import '../../../data/rules/booking_rules.dart';
 import '../shell/booking_actions.dart';
 import '../widgets/arena_widgets.dart';
 import '../widgets/motion.dart';
 import 'booking_form_controller.dart';
+import 'components/slot_picker.dart';
 
 class BookingFormView extends GetView<BookingFormController> {
   const BookingFormView({super.key});
@@ -40,7 +40,7 @@ class BookingFormView extends GetView<BookingFormController> {
           const SizedBox(height: 16),
           const _DatePicker(),
           const SizedBox(height: 16),
-          const _SlotPicker(),
+          const SlotPicker(),
           const SizedBox(height: 16),
           const _CustomerCard(),
           const SizedBox(height: 14),
@@ -294,194 +294,6 @@ class _DatePicker extends GetView<BookingFormController> {
   }
 }
 
-class _SlotPicker extends GetView<BookingFormController> {
-  const _SlotPicker();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text('Time Slot Mode', style: context.text.labelMedium?.copyWith(color: context.arena.textSecondary)),
-            ),
-            SizedBox(
-              width: 210,
-              child: Obx(
-                () => ArenaSegmented<SlotMode>(
-                  dense: true,
-                  selected: controller.mode.value,
-                  onChanged: controller.setMode,
-                  options: const [SegmentOption(SlotMode.preset, 'Preset Slots'), SegmentOption(SlotMode.custom, 'Custom Range')],
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Obx(() => controller.mode.value == SlotMode.preset ? const _PresetGrid() : const _CustomRange()),
-      ],
-    );
-  }
-}
-
-class _PresetGrid extends GetView<BookingFormController> {
-  const _PresetGrid();
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.arena;
-    return Obx(() {
-      // Touch the reactive inputs so this rebuilds when any of them change.
-      controller.selectedSlots.length;
-      controller.date.value;
-      controller.courtId.value;
-      BookingService.to.bookings.length;
-
-      return GridView.count(
-        crossAxisCount: 3,
-        clipBehavior: Clip.none, // let a selected chip's 4% lift show at the grid edges
-        padding: EdgeInsets.zero, // without it the grid inherits the nav bar inset (see home_view)
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
-        childAspectRatio: 2.3,
-        children: [
-          for (final slot in BookingRules.presetSlots)
-            Builder(
-              builder: (context) {
-                final state = controller.slotState(slot);
-                final (bg, fg, border, tag) = switch (state) {
-                  SlotState.selected => (c.cricket, c.onAccent, c.cricket, null),
-                  SlotState.available => (c.surfaceMuted, c.textPrimary, c.border, null),
-                  SlotState.booked => (c.danger.withValues(alpha: 0.08), c.dangerText, c.danger.withValues(alpha: 0.3), 'BOOKED'),
-                  SlotState.past => (c.surfaceMuted.withValues(alpha: 0.5), c.textMuted, c.border.withValues(alpha: 0.5), 'PAST'),
-                };
-                final enabled = state == SlotState.available || state == SlotState.selected;
-                return Semantics(
-                  button: true,
-                  enabled: enabled,
-                  selected: state == SlotState.selected,
-                  label: '${slot.label}${tag == null ? '' : ', ${tag.toLowerCase()}'}',
-                  excludeSemantics: true,
-                  child: Opacity(
-                    opacity: state == SlotState.past ? 0.55 : 1,
-                    child: AnimatedTile(
-                      color: bg,
-                      borderColor: border,
-                      selected: state == SlotState.selected,
-                      onTap: enabled
-                          ? () {
-                              HapticFeedback.selectionClick();
-                              controller.toggleSlot(slot);
-                            }
-                          : null,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            TimeRange.formatMinute(slot.startMinute),
-                            style: context.text.labelMedium?.copyWith(color: fg, fontWeight: state == SlotState.selected ? FontWeight.w800 : FontWeight.w600),
-                          ),
-                          if (tag != null)
-                            Text(
-                              tag,
-                              style: context.text.labelSmall?.copyWith(color: fg, fontSize: 9, fontWeight: FontWeight.w800),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-        ],
-      );
-    });
-  }
-}
-
-class _CustomRange extends GetView<BookingFormController> {
-  const _CustomRange();
-
-  Future<void> _pick(BuildContext context, {required bool start}) async {
-    final minute = start ? controller.customStart.value : controller.customEnd.value;
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(hour: (minute ~/ 60) % 24, minute: minute % 60),
-      helpText: start ? 'Start time' : 'End time',
-    );
-    if (picked == null) return;
-    start ? controller.setCustomStart(picked) : controller.setCustomEnd(picked);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.arena;
-    Widget timeBox(String label, int minute, VoidCallback onTap) => Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: context.text.labelSmall),
-          const SizedBox(height: 4),
-          Material(
-            color: c.surfaceMuted,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: c.border),
-            ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: onTap,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-                child: Row(
-                  children: [
-                    Icon(Icons.schedule_rounded, size: 16, color: c.cricketText),
-                    const SizedBox(width: 8),
-                    Text(TimeRange.formatMinute(minute), style: context.text.labelLarge),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    return ArenaCard(
-      padding: const EdgeInsets.all(12),
-      child: Obx(() {
-        BookingService.to.bookings.length; // re-check conflicts when bookings change
-        final error = controller.customRangeError;
-        final range = controller.customRange;
-        return Column(
-          children: [
-            Row(
-              children: [
-                timeBox('Start Time', controller.customStart.value, () => _pick(context, start: true)),
-                const SizedBox(width: 10),
-                timeBox('End Time', controller.customEnd.value, () => _pick(context, start: false)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Divider(color: c.border),
-            const SizedBox(height: 8),
-            Text(
-              error ?? 'Duration: ${ArenaFormat.hours(range!.durationMinutes)} · Computed Fee: ${ArenaFormat.money(controller.totalFee)}',
-              textAlign: TextAlign.center,
-              style: context.text.labelMedium?.copyWith(color: error == null ? c.cricketText : c.dangerText),
-            ),
-          ],
-        );
-      }),
-    );
-  }
-}
-
 class _CustomerCard extends GetView<BookingFormController> {
   const _CustomerCard();
 
@@ -629,18 +441,6 @@ class _PaymentCard extends GetView<BookingFormController> {
             ],
             const SizedBox(height: 10),
             Divider(color: c.border),
-            const SizedBox(height: 10),
-            const FieldLabel('Select Advance Preset'),
-            Row(
-              children: [
-                for (final p in const [0, 25, 50, 100]) ...[
-                  if (p != 0) const SizedBox(width: 6),
-                  Expanded(
-                    child: SoftButton(label: '$p%', onPressed: controller.payable == 0 && p != 0 ? null : () => controller.setAdvancePercent(p)),
-                  ),
-                ],
-              ],
-            ),
             const SizedBox(height: 12),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,

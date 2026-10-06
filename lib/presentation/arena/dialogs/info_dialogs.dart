@@ -59,7 +59,10 @@ class AboutArenaDialog extends StatelessWidget {
             ),
             child: Column(
               children: [
-                row('Developer', AppStrings.developerName),
+                GestureDetector(
+                  onTap: () => AppStrings.websiteURL.isEmpty ? null : launchUrl(Uri.parse(AppStrings.websiteURL), mode: LaunchMode.externalApplication),
+                  child: row('Developer', AppStrings.developerName),
+                ),
                 row('Built with', 'Flutter'),
                 row('Version', '${AppStrings.kappVersionWithDate} (${AppStrings.kappBuildNumber})'),
               ],
@@ -91,7 +94,7 @@ class SupportDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final phone = AppStrings.supportPhone;
+    final phone = AppStrings.supportPhone.trim();
     final configured = phone.isNotEmpty;
     return ArenaDialog(
       title: 'Contact Arena Support',

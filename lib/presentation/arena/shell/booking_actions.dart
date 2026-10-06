@@ -36,7 +36,7 @@ class BookingActions {
     final kept = BookingFormController.to.loadForRepeat(b);
     ShellController.to.go(ArenaTab.addBooking);
     ArenaToast.show(
-      kept == b.slots.length
+      kept
           ? 'Refilled ${b.customerName} for today, same time. Please confirm.'
           : 'Refilled details for ${b.customerName}. Please choose an available time slot.',
     );

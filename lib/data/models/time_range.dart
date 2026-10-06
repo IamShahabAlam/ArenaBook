@@ -1,19 +1,29 @@
-/// A time window inside one day, stored as minutes since midnight (0..1440).
+/// A time window in minutes since the booking day's midnight. End may pass 1440 (24:00):
+/// 23:00-25:00 is 11PM-1AM, ending the next day.
 ///
 /// Comparing numbers instead of strings like "08:00 PM - 09:00 PM" is what makes
 /// overlap checks correct: 20:30-21:30 overlaps both the 20:00 and the 21:00 hourly slot.
 class TimeRange implements Comparable<TimeRange> {
-  const TimeRange(this.startMinute, this.endMinute) : assert(startMinute >= 0 && endMinute <= minutesPerDay && endMinute > startMinute);
+  const TimeRange(this.startMinute, this.endMinute) : assert(startMinute >= 0 && endMinute <= maxMinute && endMinute > startMinute);
 
   factory TimeRange.hour(int startHour) => TimeRange(startHour * 60, (startHour + 1) * 60);
 
   static const minutesPerDay = 24 * 60;
 
+  /// Latest end: midnight of the next day.
+  static const maxMinute = 2 * minutesPerDay;
+
   /// Returns null instead of throwing, for values coming from user input or storage.
   static TimeRange? tryCreate(int startMinute, int endMinute) {
-    if (startMinute < 0 || endMinute > minutesPerDay || endMinute <= startMinute) return null;
+    if (startMinute < 0 || endMinute > maxMinute || endMinute <= startMinute) return null;
     return TimeRange(startMinute, endMinute);
   }
+
+  bool get endsNextDay => endMinute > minutesPerDay;
+
+  /// The same window seen from another day: [days] = -1 for the previous day, 1 for the next.
+  /// Returns null when nothing of it falls inside 0..[maxMinute] of that day.
+  TimeRange? shift(int days) => tryCreate((startMinute - days * minutesPerDay).clamp(0, maxMinute), (endMinute - days * minutesPerDay).clamp(0, maxMinute));
 
   final int startMinute;
   final int endMinute;
@@ -26,8 +36,8 @@ class TimeRange implements Comparable<TimeRange> {
   DateTime startOn(DateTime day) => DateTime(day.year, day.month, day.day).add(Duration(minutes: startMinute));
   DateTime endOn(DateTime day) => DateTime(day.year, day.month, day.day).add(Duration(minutes: endMinute));
 
-  /// Concise label: "9AM - 10AM", "1:30PM - 2:30PM".
-  String get label => '${formatMinute(startMinute)} - ${formatMinute(endMinute)}';
+  /// Concise label: "9AM - 10AM", "1:30PM - 2:30PM", "11PM - 1AM (next day)".
+  String get label => '${formatMinute(startMinute)} - ${formatMinute(endMinute)}${endsNextDay ? ' (next day)' : ''}';
 
   static String formatMinute(int minute) {
     final h24 = (minute ~/ 60) % 24;

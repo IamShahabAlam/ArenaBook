@@ -335,6 +335,8 @@ class SoftButton extends StatelessWidget {
         ),
       ),
     );
+    // Disabled must look disabled, or a tap that does nothing feels broken.
+    if (onPressed == null) button = Opacity(opacity: 0.4, child: button);
     if (tooltip != null) button = Tooltip(message: tooltip!, child: button);
     return button;
   }

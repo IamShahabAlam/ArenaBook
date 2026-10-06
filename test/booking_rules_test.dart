@@ -64,8 +64,18 @@ void main() {
       expect(TimeRange.tryCreate(600, 600), isNull);
       expect(TimeRange.tryCreate(700, 600), isNull);
       expect(TimeRange.tryCreate(-1, 60), isNull);
-      expect(TimeRange.tryCreate(0, 1441), isNull);
       expect(TimeRange.tryCreate(0, 1440), isNotNull);
+      expect(TimeRange.tryCreate(1380, 1500), isNotNull); // 11PM - 1AM next day
+      expect(TimeRange.tryCreate(0, TimeRange.maxMinute + 1), isNull);
+    });
+
+    test('next-day label and shifting between days', () {
+      const late = TimeRange(23 * 60, 25 * 60);
+      expect(late.label, '11PM - 1AM (next day)');
+      expect(late.endsNextDay, isTrue);
+      expect(late.shift(1), const TimeRange(0, 60)); // seen from the next day: 12-1 AM
+      expect(TimeRange.hour(20).shift(1), isNull); // ends before midnight: nothing the next day
+      expect(TimeRange.hour(0).shift(-1), const TimeRange(1440, 1500)); // seen from the previous day
     });
   });
 
@@ -136,23 +146,47 @@ void main() {
       expect(BookingRules.occupied(list, date: day, courtId: 'cricket-1'), [TimeRange.hour(20)]);
     });
 
-    test('other courts and days are ignored, edited booking excluded', () {
-      final list = [booking(), booking(id: 'TRF-1002', courtId: 'cricket-2'), booking(id: 'TRF-1003', date: DateTime(2026, 10, 2))];
+    test('other courts and far days are ignored, edited booking excluded', () {
+      final list = [booking(), booking(id: 'TRF-1002', courtId: 'cricket-2'), booking(id: 'TRF-1003', date: DateTime(2026, 10, 3))];
       expect(BookingRules.occupied(list, date: day, courtId: 'cricket-1'), [TimeRange.hour(20)]);
       expect(BookingRules.occupied(list, date: day, courtId: 'cricket-1', excludeBookingId: 'TRF-1001'), isEmpty);
     });
 
-    test('slot states', () {
-      final now = DateTime(2026, 10, 1, 9, 5);
-      final occupied = [const TimeRange(20 * 60 + 30, 21 * 60 + 30)];
-      SlotState state(int hour, {Set<TimeRange> selected = const {}}) =>
-          BookingRules.stateOf(TimeRange.hour(hour), date: day, now: now, occupied: occupied, selected: selected);
+    test("the next day's bookings count, on this day's timeline (a late booking could reach them)", () {
+      final tomorrow = booking(id: 'TRF-1003', date: DateTime(2026, 10, 2)); // 8-9 PM tomorrow
+      expect(BookingRules.occupied([tomorrow], date: day, courtId: 'cricket-1'), [const TimeRange(20 * 60 + 1440, 21 * 60 + 1440)]);
+    });
 
-      expect(state(9), SlotState.past); // started at 9:00
-      expect(state(10), SlotState.available);
-      expect(state(20), SlotState.booked); // custom 8:30 blocks 8PM slot
-      expect(state(21), SlotState.booked); // ...and 9PM slot
-      expect(state(10, selected: {TimeRange.hour(10)}), SlotState.selected);
+    test('30-minute cell states', () {
+      final now = DateTime(2026, 10, 1, 9, 5);
+      final occupied = [const TimeRange(20 * 60 + 30, 21 * 60 + 30)]; // 8:30-9:30 PM
+      SlotState state(int minute) => BookingRules.cellState(minute, date: day, now: now, occupied: occupied);
+
+      expect(state(9 * 60), SlotState.past); // started at 9:00
+      expect(state(9 * 60 + 30), SlotState.available);
+      expect(state(20 * 60), SlotState.available); // 8:00-8:30 is free
+      expect(state(20 * 60 + 30), SlotState.booked);
+      expect(state(21 * 60), SlotState.booked);
+      expect(state(21 * 60 + 30), SlotState.available);
+      expect(state(0), SlotState.past); // midnight-to-6AM is bookable on future days (see next test)
+    });
+
+    test('max duration stops at the next booking (or 24 h)', () {
+      final occupied = [const TimeRange(20 * 60 + 30, 21 * 60 + 30)];
+      expect(BookingRules.maxDuration(19 * 60, occupied: occupied), 90); // 7:00 -> 8:30
+      expect(BookingRules.maxDuration(20 * 60 + 30, occupied: occupied), 0); // taken
+      expect(BookingRules.maxDuration(21 * 60 + 30, occupied: occupied), 24 * 60); // free: may run past midnight, 24 h max
+      expect(BookingRules.maxDuration(0, occupied: const []), TimeRange.minutesPerDay);
+    });
+
+    test('day parts cover the whole day in 30-minute starts', () {
+      expect(DayPart.values.expand((p) => p.starts).length, 48);
+      expect(DayPart.evening.starts.first, 18 * 60);
+      expect(DayPart.evening.starts.last, 23 * 60 + 30);
+      expect(DayPart.of(0), DayPart.night);
+      expect(DayPart.of(5 * 60 + 59), DayPart.night);
+      expect(DayPart.of(6 * 60), DayPart.morning);
+      expect(DayPart.of(23 * 60 + 59), DayPart.evening);
     });
 
     test('future days have no past slots', () {
@@ -198,7 +232,6 @@ void main() {
     test('advance is clamped to the fee', () {
       expect(BookingRules.clampAdvance(5000, 1500), 1500);
       expect(BookingRules.clampAdvance(-5, 1500), 0);
-      expect(BookingRules.advanceForPercent(1500, 25), 375);
     });
   });
 
@@ -264,6 +297,42 @@ void main() {
       expect(BookingRules.validateDiscount(-1, 1500), isNotNull);
       expect(BookingRules.clampDiscount(9999, 1500), 1500);
       expect(BookingRules.clampDiscount(-5, 1500), 0);
+    });
+  });
+
+  group('Past midnight', () {
+    final sat = DateTime(2026, 10, 3), sun = DateTime(2026, 10, 4);
+    final now = DateTime(2026, 10, 3, 12);
+    final lateSat = booking(id: 'TRF-1001', date: sat, slots: [const TimeRange(23 * 60, 25 * 60)]); // Sat 11PM - Sun 1AM
+
+    test("a Saturday 11PM-1AM booking blocks Sunday's 12-1AM", () {
+      expect(BookingRules.occupied([lateSat], date: sun, courtId: 'cricket-1'), [const TimeRange(0, 60)]);
+      expect(BookingRules.cellState(0, date: sun, now: now, occupied: [const TimeRange(0, 60)]), SlotState.booked);
+      expect(BookingRules.cellState(60, date: sun, now: now, occupied: [const TimeRange(0, 60)]), SlotState.available);
+    });
+
+    test("Sunday's early booking limits a Saturday late booking", () {
+      final earlySun = booking(id: 'TRF-1002', date: sun, slots: [const TimeRange(30, 90)]); // Sun 12:30-1:30AM
+      final seenFromSat = BookingRules.occupied([earlySun], date: sat, courtId: 'cricket-1');
+      expect(seenFromSat, [const TimeRange(1470, 1530)]);
+      expect(BookingRules.maxDuration(23 * 60, occupied: seenFromSat), 90); // 11PM -> 12:30AM
+      expect(BookingRules.validateSlots([const TimeRange(23 * 60, 25 * 60)], date: sat, now: now, occupied: seenFromSat), contains('clashes'));
+      expect(BookingRules.validateSlots([const TimeRange(23 * 60, 24 * 60 + 30)], date: sat, now: now, occupied: seenFromSat), isNull);
+    });
+
+    test('bookings two days away and other courts are ignored', () {
+      expect(BookingRules.occupied([lateSat], date: DateTime(2026, 10, 5), courtId: 'cricket-1'), isEmpty);
+      expect(BookingRules.occupied([lateSat], date: sun, courtId: 'cricket-2'), isEmpty);
+    });
+
+    test('limits: 24 hours max, must start on the booking date', () {
+      expect(BookingRules.maxDuration(23 * 60, occupied: const []), 24 * 60);
+      expect(BookingRules.validateSlots([const TimeRange(1440, 1500)], date: sat, now: now, occupied: const []), contains('start on'));
+    });
+
+    test('fee and JSON work past midnight', () {
+      expect(lateSat.totalMinutes, 120);
+      expect(Booking.fromJson(lateSat.toJson()).slots.single, const TimeRange(1380, 1500));
     });
   });
 }

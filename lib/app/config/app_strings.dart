@@ -1,8 +1,8 @@
 class AppStrings {
   // App Identity ------------------- (fill these per project)
   static const appName = 'ArenaBook';
-  static const appTagline = 'Indoor Cricket Pitch & Padel Court Management System';
-  static const developerName = 'ArenaBook Eng Team';
+  static const appTagline = 'Indoor Cricket Pitch & Padel Court Booking';
+  static const developerName = 'DevCat Studios';
   static String kappVersionWithDate = 'v1.0.0'; // keep in sync with `version:` in pubspec.yaml
   static const kappBuildNumber = 1; // must match the build number on Play Console & App Store Connect
   // Support contact shown in the drawer (local or international format, e.g. 03001234567). '' hides the buttons.

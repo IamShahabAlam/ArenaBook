@@ -46,6 +46,21 @@ void main() {
       expect(s.bookings.length, 2);
     });
 
+    test('late-night booking past midnight blocks the next day, both ways', () async {
+      final s = await service();
+      final sat = DateTime(2026, 10, 3), sun = DateTime(2026, 10, 4);
+      final late = await s.create(draft(date: sat, slots: [const TimeRange(23 * 60, 25 * 60)])); // 11PM - 1AM
+      expect(late.totalFee, 3000);
+      expect(late.slotsLabel, '11PM - 1AM (next day)');
+      // Sunday 12:30AM is taken by Saturday's booking...
+      expect(() => s.create(draft(date: sun, slots: [const TimeRange(30, 90)])), throwsA(isA<BookingException>()));
+      // ...but 1AM onwards is free.
+      expect((await s.create(draft(date: sun, slots: [TimeRange.hour(1)]))).id, 'TRF-1002');
+      // And a Sunday early booking stops a new Saturday late one on another court only where they meet.
+      await s.create(draft(date: sun, courtId: 'cricket-2', slots: [const TimeRange(0, 60)]));
+      expect(() => s.create(draft(date: sat, courtId: 'cricket-2', slots: [const TimeRange(23 * 60, 25 * 60)])), throwsA(isA<BookingException>()));
+    });
+
     test('rejects double booking, including custom ranges', () async {
       final s = await service();
       await s.create(draft());
