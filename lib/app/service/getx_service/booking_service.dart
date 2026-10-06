@@ -18,6 +18,7 @@ class BookingDraft {
     required this.date,
     required this.slots,
     required this.hourlyRate,
+    this.discount = 0,
     required this.advancePaid,
   });
 
@@ -30,10 +31,12 @@ class BookingDraft {
   final DateTime date;
   final List<TimeRange> slots;
   final int hourlyRate;
+  final int discount;
   final int advancePaid;
 
   int get totalMinutes => slots.fold(0, (sum, s) => sum + s.durationMinutes);
   int get totalFee => Booking.feeFor(totalMinutes, hourlyRate);
+  int get payable => totalFee - discount;
 }
 
 /// Thrown when a booking can't be saved; [message] is safe to show to the user.
@@ -92,7 +95,8 @@ class BookingService extends GetxService {
       slots: [...draft.slots]..sort(),
       hourlyRate: draft.hourlyRate,
       totalFee: draft.totalFee,
-      advancePaid: BookingRules.clampAdvance(draft.advancePaid, draft.totalFee),
+      discount: draft.discount,
+      advancePaid: BookingRules.clampAdvance(draft.advancePaid, draft.payable),
       createdAt: now,
       updatedAt: now,
     );
@@ -119,7 +123,8 @@ class BookingService extends GetxService {
       slots: [...draft.slots]..sort(),
       hourlyRate: draft.hourlyRate,
       totalFee: draft.totalFee,
-      advancePaid: BookingRules.clampAdvance(draft.advancePaid, draft.totalFee),
+      discount: draft.discount,
+      advancePaid: BookingRules.clampAdvance(draft.advancePaid, draft.payable),
       clearBalanceSettledAt: true,
       updatedAt: _clock(),
     );
@@ -160,6 +165,7 @@ class BookingService extends GetxService {
         BookingRules.validateEmail(draft.email) ??
         (draft.notes.trim().length > BookingRules.maxNotesLength ? 'Notes can be at most ${BookingRules.maxNotesLength} characters' : null) ??
         (draft.hourlyRate <= 0 ? 'Hourly rate must be greater than 0' : null) ??
+        BookingRules.validateDiscount(draft.discount, draft.totalFee) ??
         BookingRules.validateSlots(
           draft.slots,
           date: draft.date,

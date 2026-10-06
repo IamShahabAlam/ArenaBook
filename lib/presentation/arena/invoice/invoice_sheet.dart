@@ -187,10 +187,14 @@ class _ReceiptBody extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Divider(color: c.border),
           ),
-          line('Total Fee:', ArenaFormat.money(b.totalFee)),
+          if (InvoiceText.showDiscount(b)) ...[
+            line('Ground Fee:', ArenaFormat.money(b.totalFee)),
+            line('Discount:', '-${ArenaFormat.money(b.discount)}', color: c.limeText),
+          ],
+          line('Total Fee:', ArenaFormat.money(b.payable)),
           line('Advance Paid:', ArenaFormat.money(b.advancePaid), color: c.cricketText),
           if (b.balanceSettledAt != null && !b.isCancelled)
-            line('Balance Paid (${ArenaFormat.longDate(b.balanceSettledAt!)}):', ArenaFormat.money(b.totalFee - b.advancePaid), color: c.cricketText),
+            line('Balance Paid (${ArenaFormat.longDate(b.balanceSettledAt!)}):', ArenaFormat.money(b.payable - b.advancePaid), color: c.cricketText),
           if (b.isCancelled) ...[
             line('Advance:', b.advanceReturned ? 'Returned to player' : 'Kept (non-refundable)', color: c.dangerText),
             line('Reason:', b.cancelReason, color: c.dangerText),

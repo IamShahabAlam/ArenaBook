@@ -23,7 +23,7 @@ class BookingStats {
     for (final b in bookings) {
       if (b.isCancelled || (sport != null && b.sport != sport)) continue;
       total++;
-      value += b.totalFee;
+      value += b.payable; // revenue after discount
       collected += b.amountCollected;
       if (b.balanceDue > 0) {
         pending += b.balanceDue;

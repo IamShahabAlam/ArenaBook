@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../app/config/app_client_config.dart';
 import '../../../app/service/getx_service/booking_service.dart';
 import '../../../app/service/service_handler.dart/settings_store.dart';
 import '../../../app/utils/custom_functions/arena_toast.dart';
@@ -30,6 +31,7 @@ class BookingFormController extends GetxController {
   final customStart = (13 * 60 + 30).obs;
   final customEnd = (14 * 60 + 30).obs;
   final advance = 0.obs;
+  final discount = 0.obs;
   final notesLength = 0.obs;
   final submitting = false.obs;
 
@@ -38,6 +40,7 @@ class BookingFormController extends GetxController {
   final emailCtrl = TextEditingController();
   final notesCtrl = TextEditingController();
   final advanceCtrl = TextEditingController(text: '0');
+  final discountCtrl = TextEditingController(text: '0');
   final formKey = GlobalKey<FormState>();
   final scrollController = ScrollController();
 
@@ -50,13 +53,13 @@ class BookingFormController extends GetxController {
   void onInit() {
     super.onInit();
     notesCtrl.addListener(() => notesLength.value = notesCtrl.text.length);
-    // When the fee drops below the advance (fewer slots, rate change), cap the advance.
-    everAll([selectedSlots, customStart, customEnd, mode, sport, _settings.cricketHourlyRate.rx, _settings.padelHourlyRate.rx], (_) => _capAdvance());
+    // When the fee drops (fewer slots, rate change), cap the discount and advance to it.
+    everAll([selectedSlots, customStart, customEnd, mode, sport, _settings.cricketHourlyRate.rx, _settings.padelHourlyRate.rx], (_) => _capMoney());
   }
 
   @override
   void onClose() {
-    for (final c in [nameCtrl, phoneCtrl, emailCtrl, notesCtrl, advanceCtrl]) {
+    for (final c in [nameCtrl, phoneCtrl, emailCtrl, notesCtrl, advanceCtrl, discountCtrl]) {
       c.dispose();
     }
     scrollController.dispose();
@@ -84,7 +87,14 @@ class BookingFormController extends GetxController {
 
   int get totalMinutes => chosenSlots.fold(0, (sum, s) => sum + s.durationMinutes);
   int get totalFee => Booking.feeFor(totalMinutes, hourlyRate);
-  int get balance => totalFee - BookingRules.clampAdvance(advance.value, totalFee);
+
+  bool get discountEnabled => AppClientConfig.enableDiscount;
+
+  /// Feature off: an edited booking keeps the discount it was saved with, so its price doesn't change.
+  int get effectiveDiscount => BookingRules.clampDiscount(discountEnabled ? discount.value : (_original?.discount ?? 0), totalFee);
+
+  int get payable => totalFee - effectiveDiscount;
+  int get balance => payable - BookingRules.clampAdvance(advance.value, payable);
 
   List<TimeRange> get occupied => _service.occupied(date: date.value, courtId: courtId.value, excludeBookingId: editingId.value);
 
@@ -141,28 +151,44 @@ class BookingFormController extends GetxController {
 
   void onAdvanceChanged(String text) {
     final parsed = int.tryParse(BookingRules.digitsOnly(text)) ?? 0;
-    final capped = BookingRules.clampAdvance(parsed, totalFee);
+    final capped = BookingRules.clampAdvance(parsed, payable);
     advance.value = capped;
     if (capped != parsed) _writeAdvance(capped);
   }
 
+  void onDiscountChanged(String text) {
+    final parsed = int.tryParse(BookingRules.digitsOnly(text)) ?? 0;
+    final capped = BookingRules.clampDiscount(parsed, totalFee);
+    discount.value = capped;
+    if (capped != parsed) _write(discountCtrl, capped);
+    _capMoney(); // a bigger discount can push the advance above what's payable
+  }
+
+  /// Percent of the payable amount (after discount).
   void setAdvancePercent(int percent) {
-    final value = BookingRules.advanceForPercent(totalFee, percent);
+    final value = BookingRules.advanceForPercent(payable, percent);
     advance.value = value;
     _writeAdvance(value);
   }
 
-  void _capAdvance() {
-    final capped = BookingRules.clampAdvance(advance.value, totalFee);
-    if (capped != advance.value) {
-      advance.value = capped;
-      _writeAdvance(capped);
+  void _capMoney() {
+    final cappedDiscount = BookingRules.clampDiscount(discount.value, totalFee);
+    if (cappedDiscount != discount.value) {
+      discount.value = cappedDiscount;
+      _write(discountCtrl, cappedDiscount);
+    }
+    final cappedAdvance = BookingRules.clampAdvance(advance.value, payable);
+    if (cappedAdvance != advance.value) {
+      advance.value = cappedAdvance;
+      _writeAdvance(cappedAdvance);
     }
   }
 
-  void _writeAdvance(int value) {
+  void _writeAdvance(int value) => _write(advanceCtrl, value);
+
+  void _write(TextEditingController ctrl, int value) {
     final text = value.toString();
-    advanceCtrl.value = TextEditingValue(
+    ctrl.value = TextEditingValue(
       text: text,
       selection: TextSelection.collapsed(offset: text.length),
     );
@@ -189,6 +215,8 @@ class BookingFormController extends GetxController {
     courtId.value = b.courtId;
     date.value = b.date;
     _applySlots(b.slots);
+    discount.value = b.discount;
+    _write(discountCtrl, b.discount);
     advance.value = b.amountCollected;
     _writeAdvance(b.amountCollected);
   }
@@ -238,6 +266,8 @@ class BookingFormController extends GetxController {
     date.value = dateOnly(_service.now());
     advance.value = 0;
     _writeAdvance(0);
+    discount.value = 0; // also not copied by Repeat: a discount is a one-off
+    _write(discountCtrl, 0);
     formKey.currentState?.reset();
   }
 
@@ -265,6 +295,7 @@ class BookingFormController extends GetxController {
       date: date.value,
       slots: chosenSlots,
       hourlyRate: hourlyRate,
+      discount: effectiveDiscount,
       advancePaid: advance.value,
     );
 

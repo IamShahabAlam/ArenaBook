@@ -564,7 +564,8 @@ class _PaymentCard extends GetView<BookingFormController> {
             Row(
               children: [
                 Expanded(child: Text('Total Ground Fee', style: context.text.bodySmall)),
-                AnimatedNumber(value: total, format: ArenaFormat.money, style: context.text.titleLarge),
+                // Feature off: show what's payable (an edited booking may keep an earlier discount).
+                AnimatedNumber(value: controller.discountEnabled ? total : controller.payable, format: ArenaFormat.money, style: context.text.titleLarge),
               ],
             ),
             if (controller.totalMinutes > 0)
@@ -575,6 +576,57 @@ class _PaymentCard extends GetView<BookingFormController> {
                   style: context.text.labelSmall?.copyWith(fontWeight: FontWeight.w500),
                 ),
               ),
+            if (controller.discountEnabled) ...[
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Discount', style: context.text.labelSmall),
+                        const SizedBox(height: 4),
+                        TextField(
+                          key: const ValueKey('discount-field'),
+                          controller: controller.discountCtrl,
+                          enabled: total > 0,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(8)],
+                          onChanged: controller.onDiscountChanged,
+                          style: context.text.labelLarge?.copyWith(color: c.limeText),
+                          decoration: InputDecoration(prefixText: '- ${SettingsStore.to.currencySymbol.value} '),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Payable', style: context.text.labelSmall),
+                        const SizedBox(height: 4),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: c.surfaceSunken,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: c.cricket.withValues(alpha: 0.35)),
+                          ),
+                          child: AnimatedNumber(
+                            value: controller.payable,
+                            format: ArenaFormat.money,
+                            style: context.text.labelLarge?.copyWith(color: c.cricketText),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 10),
             Divider(color: c.border),
             const SizedBox(height: 10),
@@ -584,7 +636,7 @@ class _PaymentCard extends GetView<BookingFormController> {
                 for (final p in const [0, 25, 50, 100]) ...[
                   if (p != 0) const SizedBox(width: 6),
                   Expanded(
-                    child: SoftButton(label: '$p%', onPressed: total == 0 && p != 0 ? null : () => controller.setAdvancePercent(p)),
+                    child: SoftButton(label: '$p%', onPressed: controller.payable == 0 && p != 0 ? null : () => controller.setAdvancePercent(p)),
                   ),
                 ],
               ],

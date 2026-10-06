@@ -6,11 +6,11 @@ class AppStrings {
   static String kappVersionWithDate = 'v1.0.0'; // keep in sync with `version:` in pubspec.yaml
   static const kappBuildNumber = 1; // must match the build number on Play Console & App Store Connect
   // Support contact shown in the drawer (local or international format, e.g. 03001234567). '' hides the buttons.
-  static const supportPhone = '';
+  static const supportPhone = '+92 3412757081';
   static String webApiVersion = ''; // compatible backend/web API version (ask backend team)
   static const appStoreAddress = '';
   static const playStoreAddress = '';
-  static const websiteURL = '';
+  static const websiteURL = 'https://shahab-alam.web.app/';
 
   // General -------------------
   static const nullString = '--';

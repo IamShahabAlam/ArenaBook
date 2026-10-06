@@ -20,6 +20,7 @@ class Booking {
     required this.slots,
     required this.hourlyRate,
     required this.totalFee,
+    this.discount = 0,
     required this.advancePaid,
     this.balanceSettledAt,
     this.cancelledAt,
@@ -30,7 +31,7 @@ class Booking {
   });
 
   /// Bump when the stored shape changes, and handle old versions in [fromJson].
-  static const schemaVersion = 1;
+  static const schemaVersion = 2; // v2: added discount (v1 records load with 0)
 
   final String id; // "TRF-1001", sequential so it is unique and readable
   final String customerName;
@@ -42,7 +43,8 @@ class Booking {
   final DateTime date; // local calendar day (time part is always 00:00)
   final List<TimeRange> slots; // sorted, non-overlapping
   final int hourlyRate; // rate agreed at booking time; later rate changes don't alter this booking
-  final int totalFee;
+  final int totalFee; // full slot price, before discount
+  final int discount; // rupees off, 0..totalFee
   final int advancePaid; // received when booking / last edit
   final DateTime? balanceSettledAt; // set by "Mark Paid": the remaining balance was received
   final DateTime? cancelledAt;
@@ -54,7 +56,11 @@ class Booking {
   // ─────────────── Derived values ───────────────
 
   bool get isCancelled => cancelledAt != null;
-  bool get isSettled => balanceSettledAt != null || advancePaid >= totalFee;
+
+  /// What the customer owes in total.
+  int get payable => totalFee - discount;
+
+  bool get isSettled => balanceSettledAt != null || advancePaid >= payable;
 
   Court get court => Court.byId(courtId);
 
@@ -63,10 +69,10 @@ class Booking {
   /// Money the arena actually holds for this booking.
   int get amountCollected {
     if (isCancelled) return advanceReturned ? 0 : advancePaid;
-    return isSettled ? totalFee : advancePaid;
+    return isSettled ? payable : advancePaid;
   }
 
-  int get balanceDue => isCancelled || isSettled ? 0 : totalFee - advancePaid;
+  int get balanceDue => isCancelled || isSettled ? 0 : payable - advancePaid;
 
   BookingStatus get status {
     if (isCancelled) return BookingStatus.cancelled;
@@ -104,6 +110,7 @@ class Booking {
     List<TimeRange>? slots,
     int? hourlyRate,
     int? totalFee,
+    int? discount,
     int? advancePaid,
     DateTime? balanceSettledAt,
     bool clearBalanceSettledAt = false,
@@ -124,6 +131,7 @@ class Booking {
       slots: slots ?? this.slots,
       hourlyRate: hourlyRate ?? this.hourlyRate,
       totalFee: totalFee ?? this.totalFee,
+      discount: discount ?? this.discount,
       advancePaid: advancePaid ?? this.advancePaid,
       balanceSettledAt: clearBalanceSettledAt ? null : (balanceSettledAt ?? this.balanceSettledAt),
       cancelledAt: cancelledAt ?? this.cancelledAt,
@@ -149,6 +157,7 @@ class Booking {
     'slots': slots.map((s) => s.toJson()).toList(),
     'hourlyRate': hourlyRate,
     'totalFee': totalFee,
+    'discount': discount,
     'advancePaid': advancePaid,
     'balanceSettledAt': balanceSettledAt?.toIso8601String(),
     'cancelledAt': cancelledAt?.toIso8601String(),
@@ -177,6 +186,7 @@ class Booking {
       slots: slots,
       hourlyRate: (json['hourlyRate'] as num).toInt(),
       totalFee: (json['totalFee'] as num).toInt(),
+      discount: (json['discount'] as num?)?.toInt() ?? 0, // absent in v1 records
       advancePaid: (json['advancePaid'] as num).toInt(),
       balanceSettledAt: optionalDate(json['balanceSettledAt']),
       cancelledAt: optionalDate(json['cancelledAt']),

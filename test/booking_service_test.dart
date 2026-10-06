@@ -13,7 +13,14 @@ import 'package:arenabook/data/repositories/booking/booking_repository.dart';
 void main() {
   final now = DateTime(2026, 10, 1, 12);
 
-  BookingDraft draft({List<TimeRange>? slots, int advance = 500, String courtId = 'cricket-1', DateTime? date, String phone = '03001234567'}) => BookingDraft(
+  BookingDraft draft({
+    List<TimeRange>? slots,
+    int advance = 500,
+    int discount = 0,
+    String courtId = 'cricket-1',
+    DateTime? date,
+    String phone = '03001234567',
+  }) => BookingDraft(
     customerName: '  Zain Malik ',
     phone: phone,
     sport: Sport.cricket,
@@ -21,6 +28,7 @@ void main() {
     date: date ?? DateTime(2026, 10, 1),
     slots: slots ?? [TimeRange.hour(20)],
     hourlyRate: 1500,
+    discount: discount,
     advancePaid: advance,
   );
 
@@ -84,6 +92,23 @@ void main() {
       expect(paid.balanceDue, 0);
       expect(paid.advancePaid, 500);
       expect(() => s.markPaid('TRF-9999'), throwsA(isA<BookingException>()));
+    });
+
+    test('discount: saved, capped advance, rejected when above the fee', () async {
+      final s = await service();
+      final b = await s.create(draft(discount: 300, advance: 99999));
+      expect(b.discount, 300);
+      expect(b.advancePaid, 1200); // capped to payable, not to the 1500 fee
+      expect(b.balanceDue, 0);
+      expect(() => s.create(draft(slots: [TimeRange.hour(21)], discount: 1600)), throwsA(isA<BookingException>()));
+    });
+
+    test('editing can change the discount', () async {
+      final s = await service();
+      final a = await s.create(draft(discount: 100));
+      final edited = await s.update(a.id, draft(discount: 0));
+      expect(edited.discount, 0);
+      expect(edited.balanceDue, 1000);
     });
   });
 

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:arenabook/app/config/app_client_config.dart';
 import 'package:arenabook/app/config/arena_theme.dart';
 import 'package:arenabook/app/service/getx_service/booking_service.dart';
 import 'package:arenabook/app/service/getx_service/storage_service.dart';
@@ -14,6 +15,7 @@ import 'package:arenabook/data/models/sport.dart';
 import 'package:arenabook/data/models/time_range.dart';
 import 'package:arenabook/data/repositories/booking/booking_repository.dart';
 import 'package:arenabook/data/rules/invoice_text.dart';
+import 'package:arenabook/presentation/arena/booking_form/booking_form_controller.dart';
 import 'package:arenabook/presentation/arena/booking_form/booking_form_view.dart';
 import 'package:arenabook/presentation/arena/shell/shell_controller.dart';
 import 'package:arenabook/presentation/arena/widgets/arena_widgets.dart';
@@ -179,4 +181,59 @@ void main() {
     expect(text, contains('*Balance Due:* Rs 1,000'));
     expect(InvoiceText.plain(b.settle(now), currency: 'AED'), contains('Due: AED 0'));
   });
+
+  test('invoice text itemises the discount only when the feature is on', () {
+    final b = seeded(id: 'TRF-1001', hour: 20).copyWith(discount: 200); // fee 1500, advance 500
+    final on = InvoiceText.whatsApp(b, currency: 'Rs', discountEnabled: true);
+    expect(on, contains('*Ground Fee:* Rs 1,500'));
+    expect(on, contains('*Discount:* -Rs 200'));
+    expect(on, contains('*Total Fee:* Rs 1,300'));
+    expect(on, contains('*Balance Due:* Rs 800'));
+
+    final off = InvoiceText.whatsApp(b, currency: 'Rs', discountEnabled: false);
+    expect(off, isNot(contains('Discount')));
+    expect(off, contains('*Total Fee:* Rs 1,300')); // numbers still add up
+    expect(InvoiceText.plain(b, currency: 'Rs', discountEnabled: false), isNot(contains('discount')));
+  });
+
+  for (final enabled in [true, false]) {
+    testWidgets('booking form ${enabled ? 'shows' : 'hides'} the discount field (config)', (tester) async {
+      AppClientConfig.enableDiscount = enabled;
+      addTearDown(() => AppClientConfig.enableDiscount = true);
+      await setUpServices();
+      await pumpApp(tester, dark: true);
+      await tester.tap(find.byTooltip('New booking'));
+      await tester.pumpAndSettle();
+
+      final field = find.byKey(const ValueKey('discount-field'));
+      if (!enabled) {
+        await tester.drag(formScrollable, const Offset(0, -3000));
+        await tester.pumpAndSettle();
+        expect(field, findsNothing);
+        expect(find.text('Payable'), findsNothing);
+        await disposeApp(tester);
+        return;
+      }
+
+      // Pick 2PM (fee 1500), give 200 off: payable and balance follow.
+      final slot = find.bySemanticsLabel('2PM - 3PM');
+      final semantics = tester.ensureSemantics();
+      await tester.scrollUntilVisible(slot, 200, scrollable: formScrollable);
+      await tester.tap(slot);
+      await tester.pump();
+      await tester.scrollUntilVisible(field, 300, scrollable: formScrollable);
+      await tester.enterText(field, '200');
+      await tester.pumpAndSettle();
+      expect(BookingFormController.to.payable, 1300);
+      expect(BookingFormController.to.balance, 1300);
+
+      // More than the fee is capped to the fee.
+      await tester.enterText(field, '5000');
+      await tester.pumpAndSettle();
+      expect(BookingFormController.to.discount.value, 1500);
+      expect(BookingFormController.to.payable, 0);
+      semantics.dispose();
+      await disposeApp(tester);
+    });
+  }
 }

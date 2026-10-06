@@ -93,4 +93,13 @@ class BookingRules {
   static int clampAdvance(int advance, int totalFee) => advance.clamp(0, totalFee < 0 ? 0 : totalFee);
 
   static int advanceForPercent(int totalFee, int percent) => (totalFee * percent / 100).round();
+
+  /// Discount is clamped to 0..[totalFee]: it can never make a booking negative.
+  static int clampDiscount(int discount, int totalFee) => clampAdvance(discount, totalFee);
+
+  static String? validateDiscount(int discount, int totalFee) {
+    if (discount < 0) return 'Discount cannot be negative';
+    if (discount > totalFee) return 'Discount cannot be more than the ground fee';
+    return null;
+  }
 }

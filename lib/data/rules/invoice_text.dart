@@ -1,3 +1,4 @@
+import '../../app/config/app_client_config.dart';
 import '../../app/utils/formatters/arena_format.dart';
 import '../models/booking.dart';
 import '../models/sport.dart';
@@ -12,10 +13,15 @@ class InvoiceText {
     BookingStatus.cancelled => 'CANCELLED',
   };
 
+  /// Itemise the discount only when the feature is on and this booking has one.
+  /// When hidden, totals still use [Booking.payable], so the numbers always add up.
+  static bool showDiscount(Booking b, {bool? enabled}) => (enabled ?? AppClientConfig.enableDiscount) && b.discount > 0;
+
   /// WhatsApp message (*bold* is WhatsApp markdown).
-  static String whatsApp(Booking b, {required String currency}) {
+  static String whatsApp(Booking b, {required String currency, bool? discountEnabled}) {
     String m(int v) => ArenaFormat.money(v, symbol: currency);
     final emoji = b.sport == Sport.cricket ? '🏏' : '🎾';
+    final itemise = showDiscount(b, enabled: discountEnabled);
     return [
       '$emoji *ARENABOOK GROUND RECEIPT*',
       '---------------------------------------',
@@ -25,9 +31,10 @@ class InvoiceText {
       '*Date:* ${ArenaFormat.longDate(b.date)}',
       '*Slots:* ${b.slotsLabel}',
       '',
-      '*Total Fee:* ${m(b.totalFee)}',
+      if (itemise) ...['*Ground Fee:* ${m(b.totalFee)}', '*Discount:* -${m(b.discount)}'],
+      '*Total Fee:* ${m(b.payable)}',
       '*Advance Paid:* ${m(b.advancePaid)}',
-      if (b.balanceSettledAt != null && !b.isCancelled) '*Balance Paid:* ${m(b.totalFee - b.advancePaid)}',
+      if (b.balanceSettledAt != null && !b.isCancelled) '*Balance Paid:* ${m(b.payable - b.advancePaid)}',
       '*Balance Due:* ${m(b.balanceDue)}',
       '*Status:* ${statusLabel(b)}',
       if (b.isCancelled) '*Cancellation:* ${b.cancelReason} (advance ${b.advanceReturned ? 'returned' : 'not refunded'})',
@@ -36,13 +43,14 @@ class InvoiceText {
     ].join('\n');
   }
 
-  static String plain(Booking b, {required String currency}) {
+  static String plain(Booking b, {required String currency, bool? discountEnabled}) {
     String m(int v) => ArenaFormat.money(v, symbol: currency);
+    final discount = showDiscount(b, enabled: discountEnabled) ? ' (after ${m(b.discount)} discount)' : '';
     return 'ARENABOOK INVOICE #${b.id} (${statusLabel(b)})\n'
         'Customer: ${b.customerName} (${b.phone})\n'
         'Court: ${b.court.name}\n'
         'Date: ${ArenaFormat.longDate(b.date)} (${b.slotsLabel})\n'
-        'Total: ${m(b.totalFee)} | Paid: ${m(b.amountCollected)} | Due: ${m(b.balanceDue)}';
+        'Total: ${m(b.payable)}$discount | Paid: ${m(b.amountCollected)} | Due: ${m(b.balanceDue)}';
   }
 
   /// QR payload: enough to look the booking up at the gate.

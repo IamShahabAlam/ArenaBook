@@ -13,6 +13,7 @@ Booking booking({
   DateTime? date,
   List<TimeRange>? slots,
   int totalFee = 1500,
+  int discount = 0,
   int advancePaid = 500,
   DateTime? settledAt,
   DateTime? cancelledAt,
@@ -29,6 +30,7 @@ Booking booking({
     slots: slots ?? [TimeRange.hour(20)],
     hourlyRate: 1500,
     totalFee: totalFee,
+    discount: discount,
     advancePaid: advancePaid,
     balanceSettledAt: settledAt,
     cancelledAt: cancelledAt,
@@ -218,6 +220,50 @@ void main() {
       final padel = BookingStats.from(list, sport: Sport.padel);
       expect(padel.totalBookings, 1);
       expect(padel.pendingAmount, 0);
+    });
+
+    test('total value is revenue after discount', () {
+      expect(BookingStats.from([booking(discount: 200)]).totalValue, 1300);
+    });
+  });
+
+  group('Discount', () {
+    final now = DateTime(2026, 10, 1, 21);
+
+    test('payable, balance and paid status use the discounted price', () {
+      final b = booking(totalFee: 1500, discount: 200, advancePaid: 500);
+      expect(b.payable, 1300);
+      expect(b.balanceDue, 800);
+      expect(b.status, BookingStatus.pending);
+      expect(booking(discount: 200, advancePaid: 1300).status, BookingStatus.paid); // advance covers payable
+    });
+
+    test('mark paid collects the payable amount, not the full fee', () {
+      final b = booking(discount: 200).settle(now);
+      expect(b.amountCollected, 1300);
+      expect(b.balanceDue, 0);
+    });
+
+    test('100% discount: nothing to pay', () {
+      final b = booking(totalFee: 1500, discount: 1500, advancePaid: 0);
+      expect(b.payable, 0);
+      expect(b.balanceDue, 0);
+      expect(b.status, BookingStatus.paid);
+    });
+
+    test('JSON keeps the discount; v1 records without it load as 0', () {
+      expect(Booking.fromJson(booking(discount: 250).toJson()).discount, 250);
+      final v1 = booking().toJson()..remove('discount');
+      expect(Booking.fromJson(v1).discount, 0);
+    });
+
+    test('validate and clamp', () {
+      expect(BookingRules.validateDiscount(0, 1500), isNull);
+      expect(BookingRules.validateDiscount(1500, 1500), isNull);
+      expect(BookingRules.validateDiscount(1501, 1500), isNotNull);
+      expect(BookingRules.validateDiscount(-1, 1500), isNotNull);
+      expect(BookingRules.clampDiscount(9999, 1500), 1500);
+      expect(BookingRules.clampDiscount(-5, 1500), 0);
     });
   });
 }
