@@ -242,6 +242,26 @@ void main() {
     await disposeApp(tester);
   });
 
+  testWidgets('advance & discount start empty (0 is a hint), so typing replaces it', (tester) async {
+    await setUpServices();
+    await pumpApp(tester, dark: true);
+    final form = BookingFormController.to;
+    expect(form.advanceCtrl.text, isEmpty);
+    expect(form.discountCtrl.text, isEmpty);
+    await tester.tap(find.byTooltip('New booking'));
+    await tester.pumpAndSettle();
+    await reveal(tester, find.byKey(const ValueKey('discount-field')), delta: 400);
+    expect(find.widgetWithText(TextField, '0'), findsNWidgets(2)); // the hints
+
+    form.selectStart(14 * 60); // 2-3 PM, fee 1500
+    form.onAdvanceChanged('500');
+    expect(form.advance.value, 500);
+    form.selectStart(14 * 60); // clear the time: fee 0, advance capped back to 0
+    await tester.pump();
+    expect(form.advanceCtrl.text, isEmpty); // back to the hint, not a literal "0"
+    await disposeApp(tester);
+  });
+
   test('invoice text', () {
     final b = seeded(id: 'TRF-1001', hour: 20);
     final text = InvoiceText.whatsApp(b, currency: 'Rs');

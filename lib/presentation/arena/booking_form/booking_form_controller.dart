@@ -36,8 +36,9 @@ class BookingFormController extends GetxController {
   final phoneCtrl = TextEditingController();
   final emailCtrl = TextEditingController();
   final notesCtrl = TextEditingController();
-  final advanceCtrl = TextEditingController(text: '0');
-  final discountCtrl = TextEditingController(text: '0');
+
+  final advanceCtrl = TextEditingController();
+  final discountCtrl = TextEditingController();
   final formKey = GlobalKey<FormState>();
   final scrollController = ScrollController();
 
@@ -199,7 +200,7 @@ class BookingFormController extends GetxController {
   void _writeAdvance(int value) => _write(advanceCtrl, value);
 
   void _write(TextEditingController ctrl, int value) {
-    final text = value.toString();
+    final text = value == 0 ? '' : value.toString(); // 0 shows as the field's hint
     ctrl.value = TextEditingValue(
       text: text,
       selection: TextSelection.collapsed(offset: text.length),
