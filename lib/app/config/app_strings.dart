@@ -15,6 +15,7 @@ class AppStrings {
   static const appStoreAddress = '';
   static const playStoreAddress = '';
   static const websiteURL = 'https://shahab-alam.web.app/';
+  static const supportEmail = 'devcatstudios@gmail.com';
 
   // General -------------------
   static const nullString = '--';

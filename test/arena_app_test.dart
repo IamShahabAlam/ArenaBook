@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:arenabook/app/config/app_client_config.dart';
+import 'package:arenabook/app/config/app_strings.dart';
 import 'package:arenabook/app/config/arena_theme.dart';
 import 'package:arenabook/app/service/getx_service/booking_service.dart';
 import 'package:arenabook/app/service/getx_service/storage_service.dart';
@@ -18,6 +19,7 @@ import 'package:arenabook/data/repositories/booking/booking_repository.dart';
 import 'package:arenabook/data/rules/invoice_text.dart';
 import 'package:arenabook/presentation/arena/booking_form/booking_form_controller.dart';
 import 'package:arenabook/presentation/arena/booking_form/booking_form_view.dart';
+import 'package:arenabook/presentation/arena/dialogs/info_dialogs.dart';
 import 'package:arenabook/presentation/arena/shell/shell_controller.dart';
 import 'package:arenabook/presentation/arena/shell/shell_view.dart';
 
@@ -259,6 +261,21 @@ void main() {
     form.selectStart(14 * 60); // clear the time: fee 0, advance capped back to 0
     await tester.pump();
     expect(form.advanceCtrl.text, isEmpty); // back to the hint, not a literal "0"
+    await disposeApp(tester);
+  });
+
+  testWidgets('support dialog offers WhatsApp, call and email', (tester) async {
+    await setUpServices();
+    await pumpApp(tester, dark: true);
+    SupportDialog.show();
+    await tester.pumpAndSettle();
+    expect(find.text('WhatsApp Support'), findsOneWidget);
+    expect(find.text('Call Helpline'), findsOneWidget);
+    expect(find.text('Email Support'), findsOneWidget);
+    expect(find.text(AppStrings.supportEmail), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    Navigator.of(tester.element(find.text('Email Support'))).pop();
+    await tester.pumpAndSettle();
     await disposeApp(tester);
   });
 

@@ -84,18 +84,28 @@ class SupportDialog extends StatelessWidget {
   static Future<void> show() => ArenaDialog.show(const SupportDialog());
 
   static Future<void> _open(Uri uri) async {
+    final app = switch (uri.scheme) {
+      'tel' => 'the dialer',
+      'mailto' => 'your email app',
+      _ => 'WhatsApp',
+    };
     try {
       final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (!ok) ArenaToast.error('Could not open ${uri.scheme == 'tel' ? 'the dialer' : 'WhatsApp'}');
+      if (!ok) ArenaToast.error('Could not open $app');
     } catch (_) {
-      ArenaToast.error('Could not open ${uri.scheme == 'tel' ? 'the dialer' : 'WhatsApp'}');
+      ArenaToast.error('Could not open $app');
     }
   }
+
+  /// Pre-addressed email; the subject carries the app version for faster support.
+  static Uri _emailUri(String email) =>
+      Uri(scheme: 'mailto', path: email, query: 'subject=${Uri.encodeComponent('${AppStrings.appName} support (${AppStrings.kappVersionWithDate})')}');
 
   @override
   Widget build(BuildContext context) {
     final phone = AppStrings.supportPhone.trim();
-    final configured = phone.isNotEmpty;
+    final email = AppStrings.supportEmail.trim();
+    final configured = phone.isNotEmpty || email.isNotEmpty;
     return ArenaDialog(
       title: 'Contact Arena Support',
       icon: Icons.support_agent_rounded,
@@ -112,18 +122,30 @@ class SupportDialog extends StatelessWidget {
               style: context.text.labelMedium?.copyWith(color: context.arena.warningText),
             )
           else ...[
-            GradientButton(
-              label: 'WhatsApp Support',
-              icon: Icons.chat_rounded,
-              compact: true,
-              onPressed: () => _open(Uri.parse('https://wa.me/${BookingRules.toWhatsAppNumber(phone)}')),
-            ),
-            const SizedBox(height: 8),
-            SoftButton(
-              label: 'Call Helpline',
-              icon: Icons.call_rounded,
-              onPressed: () => _open(Uri(scheme: 'tel', path: '+${BookingRules.toWhatsAppNumber(phone)}')),
-            ),
+            if (phone.isNotEmpty) ...[
+              GradientButton(
+                label: 'WhatsApp Support',
+                icon: Icons.chat_rounded,
+                compact: true,
+                onPressed: () => _open(Uri.parse('https://wa.me/${BookingRules.toWhatsAppNumber(phone)}')),
+              ),
+              const SizedBox(height: 8),
+              SoftButton(
+                label: 'Call Helpline',
+                icon: Icons.call_rounded,
+                onPressed: () => _open(Uri(scheme: 'tel', path: '+${BookingRules.toWhatsAppNumber(phone)}')),
+              ),
+            ],
+            if (email.isNotEmpty) ...[
+              if (phone.isNotEmpty) const SizedBox(height: 8),
+              SoftButton(label: 'Email Support', icon: Icons.email_rounded, onPressed: () => _open(_emailUri(email))),
+              const SizedBox(height: 6),
+              Text(
+                email,
+                textAlign: TextAlign.center,
+                style: context.text.labelSmall?.copyWith(color: context.arena.textMuted),
+              ),
+            ],
           ],
         ],
       ),
