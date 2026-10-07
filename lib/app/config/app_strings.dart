@@ -1,7 +1,11 @@
+import '../../data/models/sport.dart';
+
 class AppStrings {
   // App Identity ------------------- (fill these per project)
   static const appName = 'ArenaBook';
-  static const appTagline = 'Indoor Cricket Pitch & Padel Court Booking';
+
+  /// Follows the offered sports, e.g. "Indoor Cricket & Padel Court Booking".
+  static String get appTagline => '${Sport.offered.map((s) => s.label).join(' & ')} Booking';
   static const developerName = 'DevCat Studios';
   static String kappVersionWithDate = 'v1.0.0'; // keep in sync with `version:` in pubspec.yaml
   static const kappBuildNumber = 1; // must match the build number on Play Console & App Store Connect

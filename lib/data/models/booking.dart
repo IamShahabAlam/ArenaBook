@@ -151,7 +151,7 @@ class Booking {
     'phone': phone,
     'email': email,
     'notes': notes,
-    'sport': sport.name,
+    'sport': sport.id, // same value the old enum stored
     'courtId': courtId,
     'date': dateKey(date),
     'slots': slots.map((s) => s.toJson()).toList(),

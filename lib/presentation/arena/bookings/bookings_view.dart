@@ -70,8 +70,7 @@ class BookingsView extends GetView<BookingsController> {
           ),
         ),
         const SizedBox(height: 12),
-        Obx(() => SportFilter(selected: controller.sportFilter.value, onChanged: (s) => controller.sportFilter.value = s, longLabels: true)),
-        const SizedBox(height: 10),
+        Obx(() => SportFilter(selected: controller.sportFilter.value, onChanged: (s) => controller.sportFilter.value = s, longLabels: true, gap: 10)),
         Obx(
           () => ArenaSegmented<Timeline>(
             dense: true,

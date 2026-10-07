@@ -35,7 +35,6 @@ class BookingFormView extends GetView<BookingFormController> {
           const _FormHeader(),
           const SizedBox(height: 16),
           const _SportPicker(),
-          const SizedBox(height: 14),
           const _CourtPicker(),
           const SizedBox(height: 16),
           const _DatePicker(),
@@ -100,54 +99,67 @@ class _FormHeader extends GetView<BookingFormController> {
   }
 }
 
+/// One card per offered sport (rows of up to 3). Hidden when there is only one sport to pick.
 class _SportPicker extends GetView<BookingFormController> {
   const _SportPicker();
+
+  static const _perRow = 3;
 
   @override
   Widget build(BuildContext context) {
     final c = context.arena;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const FieldLabel('Select Sport Category'),
-        Obx(() {
-          final selected = controller.sport.value;
-          // read rates so the labels update when settings change
-          final settings = SettingsStore.to;
-          return Row(
+    return Obx(() {
+      // Read the observables first: an Obx that returns early without reading any is a GetX error.
+      final selected = controller.sport.value;
+      controller.editingId.value; // formSports depends on the booking being edited
+      final sports = controller.formSports;
+      if (sports.length < 2) return const SizedBox.shrink();
+      final settings = SettingsStore.to; // rates are reactive: labels follow Settings
+
+      Widget card(Sport s) => Semantics(
+        selected: s == selected,
+        button: true,
+        child: ArenaCard(
+          onTap: () => controller.selectSport(s),
+          borderColor: s == selected ? s.fill(c) : null,
+          gradient: s == selected ? ArenaCard.tint(context, s.fill(c)) : null,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+          child: Column(
             children: [
-              for (final s in Sport.values) ...[
-                if (s != Sport.values.first) const SizedBox(width: 12),
-                Expanded(
-                  child: Semantics(
-                    selected: s == selected,
-                    button: true,
-                    child: ArenaCard(
-                      onTap: () => controller.selectSport(s),
-                      borderColor: s == selected ? s.fill(c) : null,
-                      gradient: s == selected ? ArenaCard.tint(context, s.fill(c)) : null,
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-                      child: Column(
-                        children: [
-                          SportAvatar(sport: s, size: 42, bordered: true),
-                          const SizedBox(height: 8),
-                          Text(s.label, style: context.text.titleSmall?.copyWith(color: s == selected ? c.textPrimary : c.textSecondary)),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${ArenaFormat.money(s == Sport.cricket ? settings.cricketHourlyRate.value : settings.padelHourlyRate.value)} / Hr',
-                            style: context.text.labelSmall,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              SportAvatar(sport: s, size: 42, bordered: true),
+              const SizedBox(height: 8),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(s.label, style: context.text.titleSmall?.copyWith(color: s == selected ? c.textPrimary : c.textSecondary)),
+              ),
+              const SizedBox(height: 2),
+              Text('${ArenaFormat.money(settings.rateFor(s))} / Hr', style: context.text.labelSmall),
             ],
-          );
-        }),
-      ],
-    );
+          ),
+        ),
+      );
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const FieldLabel('Select Sport Category'),
+            for (var i = 0; i < sports.length; i += _perRow) ...[
+              if (i > 0) const SizedBox(height: 12),
+              Row(
+                children: [
+                  for (var j = i; j < i + _perRow && j < sports.length; j++) ...[if (j > i) const SizedBox(width: 12), Expanded(child: card(sports[j]))],
+                  // keep card widths equal on a short last row
+                  if (sports.length > _perRow)
+                    for (var j = sports.length; j < i + _perRow; j++) ...[const SizedBox(width: 12), const Expanded(child: SizedBox())],
+                ],
+              ),
+            ],
+          ],
+        ),
+      );
+    });
   }
 }
 
@@ -351,7 +363,7 @@ class _CustomerCard extends GetView<BookingFormController> {
             maxLines: 4, // grows with the text
             maxLength: BookingRules.maxNotesLength,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(hintText: 'e.g. Needs extra padel rackets', counterText: ''),
+            decoration: const InputDecoration(hintText: 'e.g. Needs extra equipment', counterText: ''),
           ),
         ],
       ),

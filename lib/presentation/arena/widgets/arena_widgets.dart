@@ -5,27 +5,24 @@ import '../../../app/config/arena_theme.dart';
 import '../../../data/models/sport.dart';
 import 'motion.dart';
 
-/// Visual identity per sport (icons + token colours).
+/// Visual identity per sport, from its configured icon and [SportTone].
 extension SportVisuals on Sport {
-  IconData get icon => switch (this) {
-    Sport.cricket => Icons.sports_cricket_rounded,
-    Sport.padel => Icons.sports_tennis_rounded,
-  };
+  IconData get symbol => icon ?? Icons.sports_rounded;
 
-  Color fill(ArenaColors c) => switch (this) {
-    Sport.cricket => c.cricket,
-    Sport.padel => c.padel,
-  };
+  /// (fill, text on surface, icon on the dark avatar) for this sport's tone.
+  (Color, Color, Color) _tone(ArenaColors c) {
+    final dark = c.textPrimary.computeLuminance() > 0.5; // light text = dark theme
+    return switch (tone) {
+      SportTone.emerald => (c.cricket, c.cricketText, c.cricketOnAvatar),
+      SportTone.blue => (c.padel, c.padelText, c.padelOnAvatar),
+      SportTone.violet => (const Color(0xFF8B5CF6), dark ? const Color(0xFFA78BFA) : const Color(0xFF6D28D9), const Color(0xFFA78BFA)),
+      SportTone.orange => (const Color(0xFFF97316), dark ? const Color(0xFFFB923C) : const Color(0xFFC2410C), const Color(0xFFFB923C)),
+    };
+  }
 
-  Color text(ArenaColors c) => switch (this) {
-    Sport.cricket => c.cricketText,
-    Sport.padel => c.padelText,
-  };
-
-  Color onAvatar(ArenaColors c) => switch (this) {
-    Sport.cricket => c.cricketOnAvatar,
-    Sport.padel => c.padelOnAvatar,
-  };
+  Color fill(ArenaColors c) => _tone(c).$1;
+  Color text(ArenaColors c) => _tone(c).$2;
+  Color onAvatar(ArenaColors c) => _tone(c).$3;
 }
 
 /// Rounded card used everywhere (the prototype's `.glass-card`).
@@ -86,7 +83,7 @@ class SportAvatar extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: bordered ? sport.fill(c).withValues(alpha: 0.45) : Colors.transparent),
       ),
-      child: Icon(sport.icon, size: size * 0.5, color: sport.onAvatar(c)),
+      child: Icon(sport.symbol, size: size * 0.5, color: sport.onAvatar(c)),
     );
   }
 }

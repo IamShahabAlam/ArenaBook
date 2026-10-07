@@ -11,8 +11,9 @@ class AppCache {
 
 class _Arena {
   final String currencySymbol = 'arena_currency_symbol';
-  final String cricketHourlyRate = 'arena_cricket_hourly_rate';
-  final String padelHourlyRate = 'arena_padel_hourly_rate';
+
+  /// e.g. 'arena_cricket_hourly_rate' (same keys as before, so saved rates carry over).
+  String hourlyRate(String sportId) => 'arena_${sportId}_hourly_rate';
 }
 
 class _User {

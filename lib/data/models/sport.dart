@@ -1,40 +1,80 @@
-/// The sports an arena can host. Stored by [name] ('cricket' / 'padel'), so never rename a value.
-enum Sport {
-  cricket(label: 'Indoor Cricket', shortLabel: 'Cricket'),
-  padel(label: 'Padel Court', shortLabel: 'Padel');
+import 'package:flutter/widgets.dart' show IconData;
 
-  const Sport({required this.label, required this.shortLabel});
+import '../../app/config/app_client_config.dart';
 
-  final String label;
-  final String shortLabel;
+/// Accent colour family of a sport (mapped to theme colours in the UI).
+enum SportTone { emerald, blue, violet, orange }
 
-  static Sport fromName(String name) => Sport.values.firstWhere((s) => s.name == name, orElse: () => Sport.cricket);
+/// A sport the arena offers, defined in [AppClientConfig.sports]. Bookings store [id], so never change it once used.
+class Sport {
+  const Sport({
+    required this.id,
+    required this.label,
+    required this.shortLabel,
+    required this.icon,
+    required this.tone,
+    required this.defaultRate,
+    required this.emoji,
+    required this.courts,
+    this.enabled = true,
+  });
+
+  /// Placeholder for a booking whose sport was removed from the config, so it still renders.
+  const Sport._unknown(this.id)
+    : label = id,
+      shortLabel = id,
+      icon = null,
+      tone = SportTone.emerald,
+      defaultRate = 0,
+      emoji = '🏟️',
+      courts = const [],
+      enabled = false;
+
+  final String id;
+  final String label; // "Indoor Cricket"
+  final String shortLabel; // "Cricket" (filters)
+  final IconData? icon; // null only for an unknown sport
+  final SportTone tone;
+  final int defaultRate; // per hour, until changed in Settings
+  final String emoji; // shared receipts
+  final List<Court> courts;
+  final bool enabled; // false = hidden from forms, filters and Settings; its old bookings still show
+
+  /// Every configured sport, on or off.
+  static List<Sport> get all => AppClientConfig.sports;
+
+  /// Sports offered now, i.e. enabled ones (forms, filters, Settings rates).
+  static List<Sport> get offered => all.where((s) => s.enabled).toList();
+
+  static Sport fromName(String id) => all.firstWhere((s) => s.id == id, orElse: () => Sport._unknown(id));
+
+  @override
+  bool operator ==(Object other) => other is Sport && other.id == id;
+
+  @override
+  int get hashCode => id.hashCode;
+
+  @override
+  String toString() => 'Sport($id)';
 }
 
 /// A bookable pitch / court. [id] is what bookings store, so it must never change once used.
 class Court {
-  const Court({required this.id, required this.sport, required this.name, required this.description});
+  const Court({required this.id, required this.name, required this.description});
 
   final String id;
-  final Sport sport;
   final String name; // short, shown on cards & invoices
   final String description; // longer, shown in the picker
 
-  /// Courts of the arena. Edit here until court management gets its own screen.
-  static const all = <Court>[
-    Court(id: 'cricket-1', sport: Sport.cricket, name: 'Turf Pitch 1 (Main)', description: 'Turf Pitch 1 (Main Pitch)'),
-    Court(id: 'cricket-2', sport: Sport.cricket, name: 'Turf Pitch 2 (Express)', description: 'Turf Pitch 2 (Express Lane)'),
-    Court(id: 'cricket-3', sport: Sport.cricket, name: 'Turf Pitch 3 (VIP Indoor)', description: 'Turf Pitch 3 (VIP Indoor Enclosure)'),
-    Court(id: 'padel-a', sport: Sport.padel, name: 'Court A Glass Panoramic', description: 'Court A Glass Panoramic'),
-    Court(id: 'padel-b', sport: Sport.padel, name: 'Court B Indoor Sky', description: 'Court B Indoor Sky'),
-    Court(id: 'padel-c', sport: Sport.padel, name: 'Court C Center Court', description: 'Court C Center Court'),
-  ];
-
-  static List<Court> forSport(Sport sport) => all.where((c) => c.sport == sport).toList();
+  static List<Court> forSport(Sport sport) => sport.courts;
 
   /// Unknown ids (e.g. a court that was removed) still resolve, so old bookings keep rendering.
-  static Court byId(String id) => all.firstWhere(
-    (c) => c.id == id,
-    orElse: () => Court(id: id, sport: Sport.cricket, name: id, description: id),
-  );
+  static Court byId(String id) {
+    for (final s in Sport.all) {
+      for (final c in s.courts) {
+        if (c.id == id) return c;
+      }
+    }
+    return Court(id: id, name: id, description: id);
+  }
 }

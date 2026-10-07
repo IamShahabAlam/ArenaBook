@@ -1,7 +1,6 @@
 import '../../app/config/app_client_config.dart';
 import '../../app/utils/formatters/arena_format.dart';
 import '../models/booking.dart';
-import '../models/sport.dart';
 
 /// Shareable receipt text. Pure functions of the booking, so they are unit tested.
 class InvoiceText {
@@ -20,7 +19,7 @@ class InvoiceText {
   /// WhatsApp message (*bold* is WhatsApp markdown).
   static String whatsApp(Booking b, {required String currency, bool? discountEnabled}) {
     String m(int v) => ArenaFormat.money(v, symbol: currency);
-    final emoji = b.sport == Sport.cricket ? '🏏' : '🎾';
+    final emoji = b.sport.emoji;
     final itemise = showDiscount(b, enabled: discountEnabled);
     return [
       '$emoji *ARENABOOK GROUND RECEIPT*',

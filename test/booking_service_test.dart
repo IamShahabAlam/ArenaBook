@@ -1,12 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'helpers/sports.dart';
 
 import 'helpers/temp_dir.dart';
 import 'package:hive_ce/hive.dart';
 
 import 'package:arenabook/app/service/getx_service/booking_service.dart';
-import 'package:arenabook/data/models/sport.dart';
 import 'package:arenabook/data/models/time_range.dart';
 import 'package:arenabook/data/repositories/booking/booking_repository.dart';
 
@@ -23,7 +23,7 @@ void main() {
   }) => BookingDraft(
     customerName: '  Zain Malik ',
     phone: phone,
-    sport: Sport.cricket,
+    sport: cricket,
     courtId: courtId,
     date: date ?? DateTime(2026, 10, 1),
     slots: slots ?? [TimeRange.hour(20)],

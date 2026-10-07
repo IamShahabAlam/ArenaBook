@@ -20,8 +20,8 @@ class BookingFormController extends GetxController {
 
   // ─────────────── State ───────────────
   final editingId = RxnString();
-  final sport = Sport.cricket.obs;
-  final courtId = Court.forSport(Sport.cricket).first.id.obs;
+  final sport = Sport.offered.first.obs;
+  final courtId = Sport.offered.first.courts.first.id.obs;
   // Always from the service clock (never DateTime.now()), so tests and the app agree on "today".
   late final date = dateOnly(_service.now()).obs;
   final startMinute = RxnInt(); // chosen start time, null = not picked yet
@@ -52,7 +52,7 @@ class BookingFormController extends GetxController {
     super.onInit();
     notesCtrl.addListener(() => notesLength.value = notesCtrl.text.length);
     // When the fee drops (fewer slots, rate change), cap the discount and advance to it.
-    everAll([startMinute, duration, sport, _settings.cricketHourlyRate.rx, _settings.padelHourlyRate.rx], (_) => _capMoney());
+    everAll([startMinute, duration, sport, ..._settings.rateStreams], (_) => _capMoney());
   }
 
   @override
@@ -65,6 +65,13 @@ class BookingFormController extends GetxController {
   }
 
   // ─────────────── Derived (read inside Obx) ───────────────
+
+  /// Sports to choose from: the offered ones, plus an edited booking's sport if it was switched off since.
+  List<Sport> get formSports {
+    final offered = Sport.offered;
+    final own = _original?.sport;
+    return own == null || offered.contains(own) ? offered : [...offered, own];
+  }
 
   /// Agreed rate when editing the same sport, otherwise today's configured rate.
   int get hourlyRate {

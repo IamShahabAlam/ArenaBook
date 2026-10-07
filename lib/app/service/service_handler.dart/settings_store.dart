@@ -4,23 +4,22 @@ import '../../../data/models/sport.dart';
 import '../../config/app_cache.dart';
 import 'cache_field.dart';
 
-/// Arena business settings (currency + hourly rates), saved to prefs.
+/// Arena business settings (currency + an hourly rate per configured sport), saved to prefs.
 class SettingsStore extends GetxController {
   static SettingsStore get to => Get.find();
 
   static const defaultCurrency = 'Rs';
-  static const defaultCricketRate = 1500;
-  static const defaultPadelRate = 2000;
   static const maxHourlyRate = 1000000;
 
   final currencySymbol = CacheField<String>(AppCache.arena.currencySymbol, defaultCurrency);
-  final cricketHourlyRate = CacheField<int>(AppCache.arena.cricketHourlyRate, defaultCricketRate);
-  final padelHourlyRate = CacheField<int>(AppCache.arena.padelHourlyRate, defaultPadelRate);
 
-  int rateFor(Sport sport) => switch (sport) {
-    Sport.cricket => cricketHourlyRate.value,
-    Sport.padel => padelHourlyRate.value,
-  };
+  /// One saved rate per sport id; a sport's config `defaultRate` until changed.
+  final _rates = <String, CacheField<int>>{for (final s in Sport.all) s.id: CacheField<int>(AppCache.arena.hourlyRate(s.id), s.defaultRate)};
+
+  int rateFor(Sport sport) => _rates[sport.id]?.value ?? sport.defaultRate;
+
+  /// For GetX workers that react to any rate change.
+  List<RxInterface<int>> get rateStreams => [for (final f in _rates.values) f.rx];
 
   Future<void> saveCurrency(String symbol) {
     final trimmed = symbol.trim();
@@ -28,11 +27,5 @@ class SettingsStore extends GetxController {
   }
 
   /// Rates must be at least 1 (a 0 rate would silently create free bookings).
-  Future<void> saveRate(Sport sport, int rate) {
-    final safe = rate.clamp(1, maxHourlyRate);
-    return switch (sport) {
-      Sport.cricket => cricketHourlyRate.save(safe),
-      Sport.padel => padelHourlyRate.save(safe),
-    };
-  }
+  Future<void> saveRate(Sport sport, int rate) async => _rates[sport.id]?.save(rate.clamp(1, maxHourlyRate));
 }

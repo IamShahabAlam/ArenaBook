@@ -71,7 +71,7 @@ class InvoiceSheet extends StatelessWidget {
               width: 52,
               height: 52,
               decoration: BoxDecoration(gradient: ArenaColors.ctaGradient, borderRadius: BorderRadius.circular(16)),
-              child: Icon(b.sport.icon, color: c.onAccent, size: 26),
+              child: Icon(b.sport.symbol, color: c.onAccent, size: 26),
             ).popIn(context, delay: const Duration(milliseconds: 120)),
             const SizedBox(height: 10),
             // Crossfades when the status changes (e.g. "Balance Due" -> "Paid In Full" after Mark Paid).

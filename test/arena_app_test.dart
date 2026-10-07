@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'helpers/sports.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -18,7 +19,6 @@ import 'package:arenabook/data/rules/invoice_text.dart';
 import 'package:arenabook/presentation/arena/booking_form/booking_form_controller.dart';
 import 'package:arenabook/presentation/arena/booking_form/booking_form_view.dart';
 import 'package:arenabook/presentation/arena/shell/shell_controller.dart';
-import 'package:arenabook/presentation/arena/widgets/arena_widgets.dart';
 import 'package:arenabook/presentation/arena/shell/shell_view.dart';
 
 final now = DateTime(2026, 10, 1, 12, 0);
@@ -58,12 +58,12 @@ Future<void> disposeApp(WidgetTester tester) async {
   await tester.pump(const Duration(seconds: 1));
 }
 
-Booking seeded({required String id, required int hour, int advance = 500, DateTime? date, Sport sport = Sport.cricket}) => Booking(
+Booking seeded({required String id, required int hour, int advance = 500, DateTime? date, Sport? sport}) => Booking(
   id: id,
   customerName: 'Ayesha Khan',
   phone: '03219876543',
-  sport: sport,
-  courtId: sport == Sport.cricket ? 'cricket-1' : 'padel-a',
+  sport: sport ?? cricket,
+  courtId: (sport ?? cricket) == cricket ? 'cricket-1' : 'padel-a',
   date: date ?? DateTime(2026, 10, 1),
   slots: [TimeRange.hour(hour)],
   hourlyRate: 1500,
@@ -160,7 +160,7 @@ void main() {
           dark: dark,
           seed: [
             seeded(id: 'TRF-1001', hour: 20),
-            seeded(id: 'TRF-1002', hour: 21, advance: 1500, sport: Sport.padel),
+            seeded(id: 'TRF-1002', hour: 21, advance: 1500, sport: padel),
             seeded(id: 'TRF-1003', hour: 18, date: DateTime(2026, 9, 28)),
           ],
         );

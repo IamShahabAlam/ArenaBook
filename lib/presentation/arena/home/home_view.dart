@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../app/config/arena_theme.dart';
 import '../../../app/utils/formatters/arena_format.dart';
+import '../../../data/models/sport.dart';
 import '../shell/booking_actions.dart';
 import '../shell/shell_controller.dart';
 import '../widgets/arena_widgets.dart';
@@ -20,8 +21,7 @@ class HomeView extends GetView<HomeController> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
       children: [
-        Obx(() => SportFilter(selected: controller.sportFilter.value, onChanged: controller.setFilter, withAvatars: true)),
-        const SizedBox(height: 14),
+        Obx(() => SportFilter(selected: controller.sportFilter.value, onChanged: controller.setFilter, withAvatars: true, gap: 14)),
         Obx(() {
           final s = controller.stats;
           return GridView.count(
@@ -92,7 +92,7 @@ class HomeView extends GetView<HomeController> {
                       ],
                     ),
                     const SizedBox(height: 3),
-                    Text('Reserve turf pitch or padel court slot', style: context.text.bodySmall),
+                    Text('Reserve a ${Sport.offered.map((s) => s.label).join(' or ')} slot', style: context.text.bodySmall),
                   ],
                 ),
               ),

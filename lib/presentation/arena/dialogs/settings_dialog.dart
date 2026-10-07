@@ -24,15 +24,17 @@ class SettingsDialog extends StatefulWidget {
 class _SettingsDialogState extends State<SettingsDialog> {
   final _settings = SettingsStore.to;
   late final _currency = TextEditingController(text: _settings.currencySymbol.value);
-  late final _cricket = TextEditingController(text: '${_settings.cricketHourlyRate.value}');
-  late final _padel = TextEditingController(text: '${_settings.padelHourlyRate.value}');
+
+  /// One rate field per offered sport.
+  late final _rates = {for (final s in Sport.offered) s: TextEditingController(text: '${_settings.rateFor(s)}')};
   final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
     _currency.dispose();
-    _cricket.dispose();
-    _padel.dispose();
+    for (final c in _rates.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -46,8 +48,9 @@ class _SettingsDialogState extends State<SettingsDialog> {
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     await _settings.saveCurrency(_currency.text);
-    await _settings.saveRate(Sport.cricket, int.parse(_cricket.text));
-    await _settings.saveRate(Sport.padel, int.parse(_padel.text));
+    for (final e in _rates.entries) {
+      await _settings.saveRate(e.key, int.parse(e.value.text));
+    }
     if (!mounted) return;
     Navigator.of(context).pop();
     ArenaToast.success('Settings saved');
@@ -107,29 +110,25 @@ class _SettingsDialogState extends State<SettingsDialog> {
               decoration: const InputDecoration(hintText: 'e.g. Rs, \$, AED', counterText: ''),
             ),
             const SizedBox(height: 12),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const FieldLabel('Cricket Rate / Hr'),
-                      TextFormField(controller: _cricket, keyboardType: TextInputType.number, inputFormatters: rateFormatters, validator: _rateError),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const FieldLabel('Padel Rate / Hr'),
-                      TextFormField(controller: _padel, keyboardType: TextInputType.number, inputFormatters: rateFormatters, validator: _rateError),
-                    ],
-                  ),
-                ),
-              ],
+            // Two rate fields per row, one per offered sport.
+            LayoutBuilder(
+              builder: (context, box) => Wrap(
+                spacing: 10,
+                runSpacing: 12,
+                children: [
+                  for (final e in _rates.entries)
+                    SizedBox(
+                      width: _rates.length == 1 ? box.maxWidth : (box.maxWidth - 10) / 2,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          FieldLabel('${e.key.shortLabel} Rate / Hr'),
+                          TextFormField(controller: e.value, keyboardType: TextInputType.number, inputFormatters: rateFormatters, validator: _rateError),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
             ),
             const SizedBox(height: 8),
             Text(

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'helpers/sports.dart';
 
 import 'package:arenabook/data/models/booking.dart';
 import 'package:arenabook/data/models/sport.dart';
@@ -9,7 +10,7 @@ import 'package:arenabook/data/rules/booking_stats.dart';
 Booking booking({
   String id = 'TRF-1001',
   String courtId = 'cricket-1',
-  Sport sport = Sport.cricket,
+  Sport? sport,
   DateTime? date,
   List<TimeRange>? slots,
   int totalFee = 1500,
@@ -24,7 +25,7 @@ Booking booking({
     id: id,
     customerName: 'Zain Malik',
     phone: '03001234567',
-    sport: sport,
+    sport: sport ?? cricket,
     courtId: courtId,
     date: date ?? DateTime(2026, 10, 1),
     slots: slots ?? [TimeRange.hour(20)],
@@ -240,7 +241,7 @@ void main() {
       final day = DateTime(2026, 10, 1);
       final list = [
         booking(),
-        booking(id: 'TRF-1002', sport: Sport.padel, courtId: 'padel-a', totalFee: 2000, advancePaid: 2000),
+        booking(id: 'TRF-1002', sport: padel, courtId: 'padel-a', totalFee: 2000, advancePaid: 2000),
         booking(id: 'TRF-1003', cancelledAt: day),
       ];
       final all = BookingStats.from(list);
@@ -250,9 +251,9 @@ void main() {
       expect(all.pendingAmount, 1000);
       expect(all.pendingCount, 1);
 
-      final padel = BookingStats.from(list, sport: Sport.padel);
-      expect(padel.totalBookings, 1);
-      expect(padel.pendingAmount, 0);
+      final padelStats = BookingStats.from(list, sport: padel);
+      expect(padelStats.totalBookings, 1);
+      expect(padelStats.pendingAmount, 0);
     });
 
     test('total value is revenue after discount', () {
