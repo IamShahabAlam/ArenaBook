@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:get/get.dart';
 
 import '../../../app/config/app_strings.dart';
+import '../../../app/service/getx_service/app_access_service.dart';
 import '../../../routes/app_pages.dart';
 
 class SplashController extends GetxController {
@@ -23,6 +24,7 @@ class SplashController extends GetxController {
     _left = true;
     _timer?.cancel();
     Get.offAllNamed(PageNames.shellScreen);
+    AppAccessService.to.startGuarding(); // trial-expired dialog, if blocked
   }
 
   @override

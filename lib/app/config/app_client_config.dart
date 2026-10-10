@@ -8,6 +8,9 @@ class AppClientConfig {
   static String stageBaseUrl = '';
   static String localBaseUrl = '';
 
+  /// Remote trial switch (see AppAccess). Raw link without a revision id = always the latest version.
+  static const accessConfigUrl = 'https://gist.githubusercontent.com/IamShahabAlam/017400e59bb8e4b791864f7971aa42fe/raw/ArenaBookConfig.json';
+
   // Features -------------------
   /// Discount field in the booking form and discount lines on invoices. (Not const: tests toggle it.)
   static bool enableDiscount = true;

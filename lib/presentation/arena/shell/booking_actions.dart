@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/service/getx_service/app_access_service.dart';
 import '../../../app/service/getx_service/booking_service.dart';
 import '../../../app/utils/custom_functions/arena_toast.dart';
 import '../../../app/utils/formatters/arena_format.dart';
@@ -13,12 +14,15 @@ import 'shell_controller.dart';
 class BookingActions {
   BookingActions._();
 
+  // newBooking/edit/repeat re-check the trial switch, in case the blocking dialog was ever bypassed.
   static void newBooking({DateTime? onDate}) {
+    if (!AppAccessService.to.allows()) return;
     BookingFormController.to.startNew(onDate: onDate);
     ShellController.to.go(ArenaTab.addBooking);
   }
 
   static void edit(String id) {
+    if (!AppAccessService.to.allows()) return;
     final b = BookingService.to.byId(id);
     if (b == null) return;
     if (!b.canEdit(BookingService.to.now())) {
@@ -31,6 +35,7 @@ class BookingActions {
   }
 
   static void repeat(String id) {
+    if (!AppAccessService.to.allows()) return;
     final b = BookingService.to.byId(id);
     if (b == null) return;
     final kept = BookingFormController.to.loadForRepeat(b);

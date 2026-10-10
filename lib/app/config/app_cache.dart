@@ -36,4 +36,6 @@ class _Themes {
 class _General {
   final String devMode = "dev_mode";
   final String responseCacheKey = "ResponseCacheKey"; // AES key of the offline API response cache (base64)
+  final String accessConfig = "app_access_config"; // last valid trial-switch JSON from the Gist
+  final String accessLatestTime = "app_access_latest_time"; // latest trusted time seen (ms), defeats clock rewinds
 }

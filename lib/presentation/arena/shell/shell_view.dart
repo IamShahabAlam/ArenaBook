@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../../../app/config/app_strings.dart';
 import '../../../app/config/arena_theme.dart';
+import '../../../app/service/getx_service/app_access_service.dart';
 import '../../../app/service/getx_service/booking_service.dart';
 import '../../../app/utils/formatters/arena_format.dart';
 import '../booking_form/booking_form_view.dart';
@@ -338,6 +339,7 @@ class _ArenaDrawer extends StatelessWidget {
               item(Icons.info_rounded, c.padelText, 'About Us & Dev Details', AboutArenaDialog.show),
               item(Icons.support_agent_rounded, c.warningText, 'Contact Support', SupportDialog.show),
               const Spacer(),
+              const _TrialNotice(),
               Divider(color: c.border),
               const SizedBox(height: 12),
               Center(
@@ -351,5 +353,40 @@ class _ArenaDrawer extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Drawer notice while a dated trial is running (IsAppEnable false + AppDisableAfterDate). Updates when the Gist is fetched.
+class _TrialNotice extends StatelessWidget {
+  const _TrialNotice();
+
+  static String message(int days) => 'You are on your trial version, $days ${days == 1 ? 'day' : 'days'} remaining.';
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.arena;
+    return Obx(() {
+      final days = AppAccessService.to.trialDaysLeft.value;
+      if (days == null) return const SizedBox.shrink();
+      return Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: c.warning.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: c.warning.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.hourglass_bottom_rounded, size: 18, color: c.warningText),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(message(days), style: context.text.labelMedium?.copyWith(color: c.warningText)),
+            ),
+          ],
+        ),
+      );
+    });
   }
 }

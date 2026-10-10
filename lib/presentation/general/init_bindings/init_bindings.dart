@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 
+import '../../../app/service/getx_service/app_access_service.dart';
 import '../../../app/service/getx_service/booking_service.dart';
 import '../../../app/service/service_handler.dart/settings_store.dart';
 import '../../../data/repositories/booking/booking_repository.dart';
@@ -45,6 +46,8 @@ class InitBindings implements Bindings {
     Get.put<ThemeManager>(ThemeManager());
 
     // ArenaBook ---------------------------------------------------------------
+    // Remote trial switch (Gist). Fetches in the background; the dialog waits for the splash to finish.
+    Get.put<AppAccessService>(AppAccessService(), permanent: true);
     // Currency + hourly rates (prefs)
     Get.put<SettingsStore>(SettingsStore());
     // Bookings ledger (Hive). Initialising Hive again is safe; it only sets the storage path.

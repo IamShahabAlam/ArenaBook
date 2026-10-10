@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../app/config/app_client_config.dart';
+import '../../../app/service/getx_service/app_access_service.dart';
 import '../../../app/service/getx_service/booking_service.dart';
 import '../../../app/service/service_handler.dart/settings_store.dart';
 import '../../../app/utils/custom_functions/arena_toast.dart';
@@ -294,6 +295,7 @@ class BookingFormController extends GetxController {
   /// Saves the booking and returns it, or null when validation failed (a toast explains why).
   Future<Booking?> submit() async {
     if (submitting.value) return null; // double-tap guard: never create two bookings
+    if (!AppAccessService.to.allows()) return null; // trial switch, re-checked right before saving
     final fieldsOk = formKey.currentState?.validate() ?? false;
     if (!fieldsOk) {
       ArenaToast.error('Please fix the highlighted fields');

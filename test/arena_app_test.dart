@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:arenabook/app/config/app_client_config.dart';
 import 'package:arenabook/app/config/app_strings.dart';
 import 'package:arenabook/app/config/arena_theme.dart';
+import 'package:arenabook/app/service/getx_service/app_access_service.dart';
 import 'package:arenabook/app/service/getx_service/booking_service.dart';
 import 'package:arenabook/app/service/getx_service/storage_service.dart';
 import 'package:arenabook/app/utils/custom_functions/arena_toast.dart';
@@ -31,6 +32,7 @@ Future<void> setUpServices({bool dark = true, List<Booking> seed = const []}) as
   await Get.putAsync(() => StorageService().init());
   Get.put(ThemeStore());
   Get.put(SettingsStore());
+  Get.put(AppAccessService(fetch: () async => null, clock: () => now)); // offline: never blocks
   await Get.putAsync(() => BookingService(InMemoryBookingRepository(seed), clock: () => now).init());
 }
 

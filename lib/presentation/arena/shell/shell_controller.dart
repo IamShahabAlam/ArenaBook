@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../app/service/getx_service/app_access_service.dart';
 import '../../../app/service/getx_service/booking_service.dart';
 import '../booking_form/booking_form_controller.dart';
 import '../bookings/bookings_controller.dart';
@@ -23,7 +24,10 @@ class ShellController extends GetxController with WidgetsBindingObserver {
   void onInit() {
     super.onInit();
     WidgetsBinding.instance.addObserver(this);
-    _clock = Timer.periodic(const Duration(minutes: 1), (_) => BookingService.to.tick());
+    _clock = Timer.periodic(const Duration(minutes: 1), (_) {
+      BookingService.to.tick();
+      AppAccessService.to.allows(maxAge: const Duration(minutes: 5)); // a disable date can pass while the app is open
+    });
   }
 
   @override
@@ -35,7 +39,9 @@ class ShellController extends GetxController with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) BookingService.to.tick();
+    if (state != AppLifecycleState.resumed) return;
+    BookingService.to.tick();
+    AppAccessService.to.refresh();
   }
 
   void go(ArenaTab value) {

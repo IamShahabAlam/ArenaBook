@@ -6,7 +6,16 @@ import '../widgets/arena_widgets.dart';
 
 /// Base dialog frame: title row with close button, scrollable body, actions.
 class ArenaDialog extends StatelessWidget {
-  const ArenaDialog({super.key, required this.title, required this.icon, required this.child, this.iconColor, this.titleColor, this.actions = const []});
+  const ArenaDialog({
+    super.key,
+    required this.title,
+    required this.icon,
+    required this.child,
+    this.iconColor,
+    this.titleColor,
+    this.actions = const [],
+    this.closable = true,
+  });
 
   final String title;
   final IconData icon;
@@ -14,6 +23,7 @@ class ArenaDialog extends StatelessWidget {
   final Color? titleColor;
   final Widget child;
   final List<Widget> actions;
+  final bool closable; // false hides the close button (blocking dialogs)
 
   static Future<T?> show<T>(Widget dialog) {
     final context = Get.context;
@@ -40,13 +50,14 @@ class ArenaDialog extends StatelessWidget {
                   Expanded(
                     child: Text(title, style: context.text.titleMedium?.copyWith(color: titleColor)),
                   ),
-                  IconButton(
-                    tooltip: 'Close',
-                    visualDensity: VisualDensity.compact,
-                    style: IconButton.styleFrom(backgroundColor: c.surfaceMuted),
-                    icon: Icon(Icons.close_rounded, size: 18, color: c.textSecondary),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
+                  if (closable)
+                    IconButton(
+                      tooltip: 'Close',
+                      visualDensity: VisualDensity.compact,
+                      style: IconButton.styleFrom(backgroundColor: c.surfaceMuted),
+                      icon: Icon(Icons.close_rounded, size: 18, color: c.textSecondary),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
                 ],
               ),
               const SizedBox(height: 6),

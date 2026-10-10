@@ -83,6 +83,28 @@ class SupportDialog extends StatelessWidget {
 
   static Future<void> show() => ArenaDialog.show(const SupportDialog());
 
+  @override
+  Widget build(BuildContext context) {
+    return ArenaDialog(
+      title: 'Contact Arena Support',
+      icon: Icons.support_agent_rounded,
+      iconColor: context.arena.warningText,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Need help with ground bookings or technical assistance?', style: context.text.bodySmall, textAlign: TextAlign.center),
+          const SizedBox(height: 14),
+          const SupportContacts(),
+        ],
+      ),
+    );
+  }
+}
+
+/// WhatsApp, call and email buttons from [AppStrings]; shared by the support and trial-expired dialogs.
+class SupportContacts extends StatelessWidget {
+  const SupportContacts({super.key});
+
   static Future<void> _open(Uri uri) async {
     final app = switch (uri.scheme) {
       'tel' => 'the dialer',
@@ -105,50 +127,46 @@ class SupportDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final phone = AppStrings.supportPhone.trim();
     final email = AppStrings.supportEmail.trim();
-    final configured = phone.isNotEmpty || email.isNotEmpty;
-    return ArenaDialog(
-      title: 'Contact Arena Support',
-      icon: Icons.support_agent_rounded,
-      iconColor: context.arena.warningText,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text('Need help with ground bookings or technical assistance?', style: context.text.bodySmall, textAlign: TextAlign.center),
-          const SizedBox(height: 14),
-          if (!configured)
-            Text(
-              'Support contact is not configured yet.',
-              textAlign: TextAlign.center,
-              style: context.text.labelMedium?.copyWith(color: context.arena.warningText),
-            )
-          else ...[
-            if (phone.isNotEmpty) ...[
-              GradientButton(
-                label: 'WhatsApp Support',
-                icon: Icons.chat_rounded,
-                compact: true,
-                onPressed: () => _open(Uri.parse('https://wa.me/${BookingRules.toWhatsAppNumber(phone)}')),
-              ),
-              const SizedBox(height: 8),
-              SoftButton(
-                label: 'Call Helpline',
-                icon: Icons.call_rounded,
-                onPressed: () => _open(Uri(scheme: 'tel', path: '+${BookingRules.toWhatsAppNumber(phone)}')),
-              ),
-            ],
-            if (email.isNotEmpty) ...[
-              if (phone.isNotEmpty) const SizedBox(height: 8),
-              SoftButton(label: 'Email Support', icon: Icons.email_rounded, onPressed: () => _open(_emailUri(email))),
-              const SizedBox(height: 6),
-              Text(
-                email,
-                textAlign: TextAlign.center,
-                style: context.text.labelSmall?.copyWith(color: context.arena.textMuted),
-              ),
-            ],
-          ],
-        ],
+    if (phone.isEmpty && email.isEmpty) {
+      return Text(
+        'Support contact is not configured yet.',
+        textAlign: TextAlign.center,
+        style: context.text.labelMedium?.copyWith(color: context.arena.warningText),
+      );
+    }
+    Widget caption(String text) => Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: context.text.labelSmall?.copyWith(color: context.arena.textMuted),
       ),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (phone.isNotEmpty) ...[
+          GradientButton(
+            label: 'WhatsApp Support',
+            icon: Icons.chat_rounded,
+            compact: true,
+            onPressed: () => _open(Uri.parse('https://wa.me/${BookingRules.toWhatsAppNumber(phone)}')),
+          ),
+          const SizedBox(height: 8),
+          SoftButton(
+            label: 'Call Helpline',
+            icon: Icons.call_rounded,
+            onPressed: () => _open(Uri(scheme: 'tel', path: '+${BookingRules.toWhatsAppNumber(phone)}')),
+          ),
+          // caption(phone),
+        ],
+        if (email.isNotEmpty) ...[
+          if (phone.isNotEmpty) const SizedBox(height: 8),
+          SoftButton(label: 'Email Support', icon: Icons.email_rounded, onPressed: () => _open(_emailUri(email))),
+          // caption(email),
+        ],
+      ],
     );
   }
 }
