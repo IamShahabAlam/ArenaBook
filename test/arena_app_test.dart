@@ -20,6 +20,7 @@ import 'package:arenabook/data/repositories/booking/booking_repository.dart';
 import 'package:arenabook/data/rules/invoice_text.dart';
 import 'package:arenabook/presentation/arena/booking_form/booking_form_controller.dart';
 import 'package:arenabook/presentation/arena/booking_form/booking_form_view.dart';
+import 'package:arenabook/presentation/arena/calendar/calendar_controller.dart';
 import 'package:arenabook/presentation/arena/dialogs/info_dialogs.dart';
 import 'package:arenabook/presentation/arena/shell/shell_controller.dart';
 import 'package:arenabook/presentation/arena/shell/shell_view.dart';
@@ -266,6 +267,29 @@ void main() {
     await disposeApp(tester);
   });
 
+  testWidgets('calendar shows one dot per distinct sport on a day, in config order', (tester) async {
+    final oct10 = DateTime(2026, 10, 10);
+    await setUpServices(
+      seed: [
+        seeded(id: 'TRF-1001', hour: 9, date: oct10),
+        seeded(id: 'TRF-1002', hour: 11, date: oct10),
+        seeded(id: 'TRF-1003', hour: 15, date: oct10, sport: padel),
+        seeded(id: 'TRF-1004', hour: 18, date: DateTime(2026, 10, 12), sport: padel).cancel(reason: 'Rain', advanceReturned: true, now: now),
+      ],
+    );
+    await pumpApp(tester, dark: true);
+
+    // 2 cricket + 1 padel = 2 dots; a cancelled booking leaves no dot.
+    expect(Get.find<CalendarController>().sportsByDay, {
+      dateKey(oct10): [cricket, padel],
+    });
+    ShellController.to.go(ArenaTab.calendar);
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel(RegExp('Cricket and Padel bookings')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await disposeApp(tester);
+  });
+
   testWidgets('support dialog offers WhatsApp, call and email', (tester) async {
     await setUpServices();
     await pumpApp(tester, dark: true);
@@ -274,7 +298,9 @@ void main() {
     expect(find.text('WhatsApp Support'), findsOneWidget);
     expect(find.text('Call Helpline'), findsOneWidget);
     expect(find.text('Email Support'), findsOneWidget);
-    expect(find.text(AppStrings.supportEmail), findsOneWidget);
+    // Buttons only: the number and address captions are hidden.
+    expect(find.text(AppStrings.supportEmail), findsNothing);
+    expect(find.text(AppStrings.supportPhone), findsNothing);
     expect(tester.takeException(), isNull);
     Navigator.of(tester.element(find.text('Email Support'))).pop();
     await tester.pumpAndSettle();

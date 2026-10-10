@@ -26,7 +26,7 @@ class AppClientConfig {
       shortLabel: 'Cricket',
       icon: Icons.sports_cricket_rounded,
       tone: SportTone.emerald,
-      defaultRate: 1500,
+      defaultRate: 3500,
       emoji: '🏏',
       courts: [
         Court(id: 'cricket-1', name: 'Turf Pitch 1 (Main)', description: 'Turf Pitch 1 (Main Pitch)'),
@@ -40,7 +40,7 @@ class AppClientConfig {
       shortLabel: 'Padel',
       icon: Icons.sports_tennis_rounded,
       tone: SportTone.blue,
-      defaultRate: 2000,
+      defaultRate: 3000,
       emoji: '🎾',
       courts: [
         Court(id: 'padel-a', name: 'Court A Glass Panoramic', description: 'Court A Glass Panoramic'),

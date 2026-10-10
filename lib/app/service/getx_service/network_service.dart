@@ -3,8 +3,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
-import '../../utils/custom_functions/app_alerts.dart';
-import '../../../routes/app_pages.dart';
+// import '../../utils/custom_functions/app_alerts.dart'; // for the disabled no-internet dialog
+// import '../../../routes/app_pages.dart'; // for the disabled no-internet dialog
 import '../../utils/custom_functions/logger.dart';
 
 class GetXNetworkManager extends GetxController {
@@ -56,9 +56,10 @@ class GetXNetworkManager extends GetxController {
     } else {
       connectionType = 0;
 
-      if (Get.currentRoute != PageNames.splashscreen) {
-        Dialogs.showNetworkMessageForSplash();
-      }
+      // Disabled while the app is offline-first; re-enable once an online database is required.
+      // if (Get.currentRoute != PageNames.splashscreen) {
+      //   Dialogs.showNetworkMessageForSplash();
+      // }
     }
 
     isOnline.value = connectionType != 0;

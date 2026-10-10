@@ -11,11 +11,11 @@ import 'package:open_settings_plus/open_settings_plus.dart';
 
 import '../../config/app_assets.dart';
 import '../../config/app_fontweights.dart';
-import '../../service/getx_service/network_service.dart';
+// import '../../service/getx_service/network_service.dart'; // used by showNetworkMessageForSplash (disabled)
 import '../custom_widgets/common_text.dart';
 import '../../../routes/app_pages.dart';
 import '../../config/app_colors.dart';
-import '../../service/service_handler.dart/user_store.dart';
+// import '../../service/service_handler.dart/user_store.dart'; // used by showNetworkMessageForSplash (disabled)
 import '../custom_widgets/logo_loader.dart';
 import '../utils.dart';
 import 'logger.dart';
@@ -93,57 +93,59 @@ class Dialogs {
     );
   }
 
-  // Network Message with navigations
-  static void showNetworkMessageForSplash() {
-    Get.dialog(
-      barrierDismissible: false,
-      AlertDialog(
-        backgroundColor: Get.theme.colorScheme.secondary,
-        content: Text(
-          'No internet connection\nConnect to internet and retry', // "Are you sure you want to go back, all your changes will be discarded",
-          style: TextStyle(fontSize: 17, color: Get.theme.colorScheme.onSecondary),
-          textAlign: TextAlign.center,
-        ),
-        actions: <Widget>[
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: Get.theme.colorScheme.onSecondary),
-            onPressed: () {
-              Get.back();
-            },
-            child: Text(
-              "Ignore",
-              style: TextStyle(fontWeight: AppFontWeights.appTextFontWeightMedium, color: Get.theme.colorScheme.onSecondary),
-            ),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(backgroundColor: Get.theme.colorScheme.tertiary, foregroundColor: Get.theme.colorScheme.onSecondary),
-            onPressed: () async {
-              Get.back();
-              // await GetXNetworkManager.to.checkConnectivity();
+  // Disabled while the app is offline-first (no "no internet" dialog, no redirect to login).
+  // Re-enable together with the call in GetXNetworkManager._updateState once an online database is required.
+  // // Network Message with navigations
+  // static void showNetworkMessageForSplash() {
+  //   Get.dialog(
+  //     barrierDismissible: false,
+  //     AlertDialog(
+  //       backgroundColor: Get.theme.colorScheme.secondary,
+  //       content: Text(
+  //         'No internet connection\nConnect to internet and retry', // "Are you sure you want to go back, all your changes will be discarded",
+  //         style: TextStyle(fontSize: 17, color: Get.theme.colorScheme.onSecondary),
+  //         textAlign: TextAlign.center,
+  //       ),
+  //       actions: <Widget>[
+  //         TextButton(
+  //           style: TextButton.styleFrom(foregroundColor: Get.theme.colorScheme.onSecondary),
+  //           onPressed: () {
+  //             Get.back();
+  //           },
+  //           child: Text(
+  //             "Ignore",
+  //             style: TextStyle(fontWeight: AppFontWeights.appTextFontWeightMedium, color: Get.theme.colorScheme.onSecondary),
+  //           ),
+  //         ),
+  //         TextButton(
+  //           style: TextButton.styleFrom(backgroundColor: Get.theme.colorScheme.tertiary, foregroundColor: Get.theme.colorScheme.onSecondary),
+  //           onPressed: () async {
+  //             Get.back();
+  //             // await GetXNetworkManager.to.checkConnectivity();
 
-              Dialogs.showProgressBar();
-              Future.delayed(const Duration(seconds: 2), () {
-                if (GetXNetworkManager.to.connectionType == 0) {
-                  Dialogs.hideProgressBar();
-                  Get.back();
-                  Dialogs.showNetworkMessageForSplash();
-                } else {
-                  Dialogs.hideProgressBar();
-                  // Logged in -> stay where we are, otherwise send to login
-                  if (UserStore.to.isLoggedIn) {
-                    Get.back();
-                  } else {
-                    Get.offAllNamed(PageNames.loginScreen);
-                  }
-                }
-              });
-            },
-            child: const Text("Retry"),
-          ),
-        ],
-      ),
-    );
-  }
+  //             Dialogs.showProgressBar();
+  //             Future.delayed(const Duration(seconds: 2), () {
+  //               if (GetXNetworkManager.to.connectionType == 0) {
+  //                 Dialogs.hideProgressBar();
+  //                 Get.back();
+  //                 Dialogs.showNetworkMessageForSplash();
+  //               } else {
+  //                 Dialogs.hideProgressBar();
+  //                 // Logged in -> stay where we are, otherwise send to login
+  //                 if (UserStore.to.isLoggedIn) {
+  //                   Get.back();
+  //                 } else {
+  //                   Get.offAllNamed(PageNames.loginScreen);
+  //                 }
+  //               }
+  //             });
+  //           },
+  //           child: const Text("Retry"),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   static void showBlockedDialog() {
     // if (Get.isDialogOpen == true) return; // Avoid multiple dialogs
