@@ -5,6 +5,7 @@ import '../../../app/config/arena_theme.dart';
 import '../../../app/service/getx_service/booking_service.dart';
 import '../../../app/utils/formatters/arena_format.dart';
 import '../../../data/models/booking.dart';
+import '../../../data/models/sport.dart';
 import '../shell/booking_actions.dart';
 import '../widgets/arena_widgets.dart';
 import '../widgets/booking_card.dart';
@@ -104,7 +105,7 @@ class CalendarView extends GetView<CalendarController> {
                     key: ValueKey(month),
                     month: month,
                     selected: controller.selected.value,
-                    marked: controller.daysWithBookings,
+                    sportsByDay: controller.sportsByDay,
                     onSelect: controller.select,
                   ),
                 ),
@@ -150,11 +151,11 @@ class _NavButton extends StatelessWidget {
 }
 
 class _MonthGrid extends StatelessWidget {
-  const _MonthGrid({super.key, required this.month, required this.selected, required this.marked, required this.onSelect});
+  const _MonthGrid({super.key, required this.month, required this.selected, required this.sportsByDay, required this.onSelect});
 
   final DateTime month;
   final DateTime selected;
-  final Set<String> marked;
+  final Map<String, List<Sport>> sportsByDay; // dateKey -> distinct sports booked that day
   final ValueChanged<DateTime> onSelect;
 
   @override
@@ -182,7 +183,7 @@ class _MonthGrid extends StatelessWidget {
                         final day = DateTime(month.year, month.month, dayNumber);
                         final isSelected = isSameDay(day, selected);
                         final isToday = isSameDay(day, today);
-                        final hasBookings = marked.contains(dateKey(day));
+                        final sports = sportsByDay[dateKey(day)] ?? const <Sport>[];
                         final bg = isSelected ? c.cricket : (isToday ? c.surfaceMuted : c.surface);
                         final fg = isSelected ? c.onAccent : (isToday ? c.cricketText : c.textPrimary);
                         final border = isSelected ? c.cricket : (isToday ? c.cricket.withValues(alpha: 0.6) : c.border);
@@ -192,7 +193,7 @@ class _MonthGrid extends StatelessWidget {
                           child: Semantics(
                             button: true,
                             selected: isSelected,
-                            label: '${ArenaFormat.longDate(day)}${hasBookings ? ', has bookings' : ''}',
+                            label: '${ArenaFormat.longDate(day)}${sports.isEmpty ? '' : ', ${sports.map((s) => s.shortLabel).join(' and ')} bookings'}',
                             excludeSemantics: true,
                             child: Material(
                               color: bg,
@@ -216,12 +217,24 @@ class _MonthGrid extends StatelessWidget {
                                         ),
                                       ),
                                       const SizedBox(height: 3),
-                                      Container(
-                                        width: 5,
-                                        height: 5,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: hasBookings ? (isSelected ? c.onAccent : c.cricketText) : Colors.transparent,
+                                      SizedBox(
+                                        height: 6,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            for (final sport in sports)
+                                              Container(
+                                                width: 6,
+                                                height: 6,
+                                                margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: sport.text(c),
+                                                  // Ring keeps the emerald dot visible on the emerald selected cell.
+                                                  border: isSelected ? Border.all(color: c.onAccent, width: 1) : null,
+                                                ),
+                                              ),
+                                          ],
                                         ),
                                       ),
                                     ],
