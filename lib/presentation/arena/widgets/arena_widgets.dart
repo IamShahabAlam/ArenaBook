@@ -217,11 +217,21 @@ class AnimatedTile extends StatelessWidget {
 
 /// Emerald → lime gradient call-to-action.
 class GradientButton extends StatelessWidget {
-  const GradientButton({super.key, required this.label, required this.onPressed, this.icon, this.expanded = true, this.compact = false, this.loading = false});
+  const GradientButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.icon,
+    this.leading,
+    this.expanded = true,
+    this.compact = false,
+    this.loading = false,
+  });
 
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
+  final Widget? leading; // instead of [icon], e.g. WhatsAppLogo; gets the same size and colour
   final bool expanded;
   final bool compact;
   final bool loading;
@@ -253,9 +263,12 @@ class GradientButton extends StatelessWidget {
                 children: [
                   if (loading)
                     SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2, color: c.onAccent))
-                  else if (icon != null)
-                    Icon(icon, size: compact ? 16 : 18, color: c.onAccent),
-                  if (loading || icon != null) const SizedBox(width: 8),
+                  else if (icon != null || leading != null)
+                    IconTheme(
+                      data: IconThemeData(size: compact ? 16 : 18, color: c.onAccent),
+                      child: leading ?? Icon(icon),
+                    ),
+                  if (loading || icon != null || leading != null) const SizedBox(width: 8),
                   Flexible(
                     child: Text(
                       label,

@@ -8,6 +8,7 @@ import '../../../app/utils/custom_widgets/arena_logo.dart';
 import '../../../data/rules/booking_rules.dart';
 import '../widgets/arena_widgets.dart';
 import '../widgets/motion.dart';
+import '../widgets/whatsapp_logo.dart';
 import 'arena_dialog.dart';
 
 class AboutArenaDialog extends StatelessWidget {
@@ -149,7 +150,8 @@ class SupportContacts extends StatelessWidget {
         if (phone.isNotEmpty) ...[
           GradientButton(
             label: 'WhatsApp Support',
-            icon: Icons.chat_rounded,
+            leading: const WhatsAppLogo(),
+            // icon: Icons.chat_rounded,
             compact: true,
             onPressed: () => _open(Uri.parse('https://wa.me/${BookingRules.toWhatsAppNumber(phone)}')),
           ),

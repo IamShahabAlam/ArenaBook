@@ -217,8 +217,13 @@ class _MonthGrid extends StatelessWidget {
                                         ),
                                       ),
                                       const SizedBox(height: 3),
-                                      SizedBox(
-                                        height: 6,
+                                      Container(
+                                        height: 8,
+                                        padding: const EdgeInsets.symmetric(horizontal: 1.5, vertical: 1),
+                                        // Dark pill on the emerald selected cell, so every sport colour stays visible.
+                                        decoration: isSelected && sports.isNotEmpty
+                                            ? BoxDecoration(color: c.onAccent, borderRadius: BorderRadius.circular(4))
+                                            : null,
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
@@ -227,12 +232,7 @@ class _MonthGrid extends StatelessWidget {
                                                 width: 6,
                                                 height: 6,
                                                 margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                                                decoration: BoxDecoration(
-                                                  shape: BoxShape.circle,
-                                                  color: sport.text(c),
-                                                  // Ring keeps the emerald dot visible on the emerald selected cell.
-                                                  border: isSelected ? Border.all(color: c.onAccent, width: 1) : null,
-                                                ),
+                                                decoration: BoxDecoration(shape: BoxShape.circle, color: sport.text(c)),
                                               ),
                                           ],
                                         ),

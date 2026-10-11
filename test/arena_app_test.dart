@@ -22,6 +22,8 @@ import 'package:arenabook/presentation/arena/booking_form/booking_form_controlle
 import 'package:arenabook/presentation/arena/booking_form/booking_form_view.dart';
 import 'package:arenabook/presentation/arena/calendar/calendar_controller.dart';
 import 'package:arenabook/presentation/arena/dialogs/info_dialogs.dart';
+import 'package:arenabook/presentation/arena/invoice/contact_customer_sheet.dart';
+import 'package:arenabook/presentation/arena/invoice/invoice_sheet.dart';
 import 'package:arenabook/presentation/arena/shell/shell_controller.dart';
 import 'package:arenabook/presentation/arena/shell/shell_view.dart';
 
@@ -118,7 +120,7 @@ void main() {
 
     // Invoice sheet for the new booking
     expect(find.text('#TRF-1001'), findsWidgets);
-    expect(BookingService.to.bookings.single.totalFee, 1500);
+    expect(BookingService.to.bookings.single.totalFee, SettingsStore.to.rateFor(cricket)); // 1 hour at the configured rate
 
     // Close the invoice -> spec: back to Home, which now lists the booking
     await tester.tapAt(const Offset(20, 20));
@@ -258,7 +260,7 @@ void main() {
     await reveal(tester, find.byKey(const ValueKey('discount-field')), delta: 400);
     expect(find.widgetWithText(TextField, '0'), findsNWidgets(2)); // the hints
 
-    form.selectStart(14 * 60); // 2-3 PM, fee 1500
+    form.selectStart(14 * 60); // 2-3 PM, one hour's fee
     form.onAdvanceChanged('500');
     expect(form.advance.value, 500);
     form.selectStart(14 * 60); // clear the time: fee 0, advance capped back to 0
@@ -287,6 +289,35 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.bySemanticsLabel(RegExp('Cricket and Padel bookings')), findsOneWidget);
     expect(tester.takeException(), isNull);
+    await disposeApp(tester);
+  });
+
+  test('contact links: call and SMS with +92, WhatsApp without "+"', () {
+    final to = ContactCustomerSheet.links('0321-9876543');
+    expect(to.call.toString(), 'tel:+923219876543');
+    expect(to.sms.toString(), 'sms:+923219876543');
+    expect(to.whatsApp.toString(), 'https://wa.me/923219876543');
+  });
+
+  testWidgets('invoice contact button offers call, SMS and WhatsApp', (tester) async {
+    await setUpServices(seed: [seeded(id: 'TRF-1001', hour: 20)]);
+    await pumpApp(tester, dark: true);
+    InvoiceSheet.show('TRF-1001');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Contact customer'));
+    await tester.pumpAndSettle();
+    expect(find.text('Contact Ayesha Khan'), findsOneWidget);
+    expect(find.text('03219876543'), findsWidgets); // shown on the receipt and in the sheet
+    for (final option in ['Call', 'SMS', 'WhatsApp']) {
+      expect(find.text(option), findsOneWidget);
+    }
+    expect(tester.takeException(), isNull);
+
+    Navigator.of(tester.element(find.text('Contact Ayesha Khan'))).pop();
+    await tester.pumpAndSettle();
+    expect(find.text('Contact Ayesha Khan'), findsNothing);
+    expect(find.text('#TRF-1001'), findsOneWidget); // back on the invoice
     await disposeApp(tester);
   });
 
@@ -349,7 +380,8 @@ void main() {
         return;
       }
 
-      // Pick 2PM (fee 1500), give 200 off: payable and balance follow.
+      // Pick 2PM (one hour at the configured rate), give 200 off: payable and balance follow.
+      final fee = SettingsStore.to.rateFor(cricket);
       final slot = find.bySemanticsLabel('2PM');
       final semantics = tester.ensureSemantics();
       await reveal(tester, slot);
@@ -358,13 +390,13 @@ void main() {
       await reveal(tester, field);
       await tester.enterText(field, '200');
       await tester.pumpAndSettle();
-      expect(BookingFormController.to.payable, 1300);
-      expect(BookingFormController.to.balance, 1300);
+      expect(BookingFormController.to.payable, fee - 200);
+      expect(BookingFormController.to.balance, fee - 200);
 
       // More than the fee is capped to the fee.
-      await tester.enterText(field, '5000');
+      await tester.enterText(field, '${fee * 10}');
       await tester.pumpAndSettle();
-      expect(BookingFormController.to.discount.value, 1500);
+      expect(BookingFormController.to.discount.value, fee);
       expect(BookingFormController.to.payable, 0);
       semantics.dispose();
       await disposeApp(tester);

@@ -23,4 +23,7 @@ class _Lottie {
   final String listLottie = 'list_lottie';
 }
 
-class _SVG {}
+class _SVG {
+  // Single-colour glyph; draw it with SvgWidget so it takes the theme colour like a Material icon.
+  final String whatsApp = 'whatsapp';
+}

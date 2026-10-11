@@ -16,6 +16,8 @@ import '../shell/booking_actions.dart';
 import '../widgets/arena_widgets.dart';
 import '../widgets/booking_card.dart';
 import '../widgets/motion.dart';
+import '../widgets/whatsapp_logo.dart';
+import 'contact_customer_sheet.dart';
 
 /// Digital receipt. Reads the booking reactively, so "Mark Paid" updates it in place.
 class InvoiceSheet extends StatelessWidget {
@@ -67,12 +69,33 @@ class InvoiceSheet extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(18, 0, 18, 18 + MediaQuery.paddingOf(context).bottom),
         child: Column(
           children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(gradient: ArenaColors.ctaGradient, borderRadius: BorderRadius.circular(16)),
-              child: Icon(b.sport.symbol, color: c.onAccent, size: 26),
-            ).popIn(context, delay: const Duration(milliseconds: 120)),
+            // Contact sits top-right, away from Mark Paid at the bottom, so neither gets tapped by mistake.
+            SizedBox(
+              width: double.infinity, // full width, so the button reaches the right edge
+              child: Stack(
+                alignment: Alignment.center,
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(gradient: ArenaColors.ctaGradient, borderRadius: BorderRadius.circular(16)),
+                    child: Icon(b.sport.symbol, color: c.onAccent, size: 26),
+                  ).popIn(context, delay: const Duration(milliseconds: 120)),
+                  if (b.phone.isNotEmpty)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: SoftButton(
+                        label: 'Contact',
+                        icon: Icons.contact_phone_rounded,
+                        tooltip: 'Contact customer',
+                        onPressed: () => ContactCustomerSheet.show(b),
+                      ),
+                    ),
+                ],
+              ),
+            ),
             const SizedBox(height: 10),
             // Crossfades when the status changes (e.g. "Balance Due" -> "Paid In Full" after Mark Paid).
             AnimatedSwitcher(
@@ -89,7 +112,7 @@ class InvoiceSheet extends StatelessWidget {
             const SizedBox(height: 14),
             _ReceiptBody(booking: b),
             const SizedBox(height: 14),
-            if (b.phone.isNotEmpty) GradientButton(label: 'Share via WhatsApp', icon: Icons.chat_rounded, onPressed: () => _shareWhatsApp(b)),
+            if (b.phone.isNotEmpty) GradientButton(label: 'Share via WhatsApp', leading: const WhatsAppLogo(), onPressed: () => _shareWhatsApp(b)),
             const SizedBox(height: 8),
             Row(
               children: [
