@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'helpers/sports.dart';
@@ -318,6 +320,37 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Contact Ayesha Khan'), findsNothing);
     expect(find.text('#TRF-1001'), findsOneWidget); // back on the invoice
+    await disposeApp(tester);
+  });
+
+  testWidgets('share sends a picture of the receipt, not text', (tester) async {
+    await setUpServices(seed: [seeded(id: 'TRF-1001', hour: 20)]);
+    await pumpApp(tester, dark: true);
+    InvoiceSheet.show('TRF-1001');
+    await tester.pumpAndSettle();
+
+    final original = InvoiceSheet.shareImage;
+    addTearDown(() => InvoiceSheet.shareImage = original);
+    (Uint8List, Booking)? shared;
+    InvoiceSheet.shareImage = (png, booking, _) async => shared = (png, booking);
+
+    // Rendering to an image needs the real event loop, so tap and wait inside runAsync.
+    await tester.runAsync(() async {
+      await tester.tap(find.text('Share via WhatsApp'));
+      for (var i = 0; i < 50 && shared == null; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      }
+    });
+    await tester.pumpAndSettle();
+    expect(shared, isNotNull, reason: 'nothing was shared');
+    final (png, booking) = shared!;
+
+    expect(booking.id, 'TRF-1001');
+    expect(png.sublist(1, 4), 'PNG'.codeUnits); // a real PNG file
+    final header = ByteData.sublistView(png, 16, 24); // IHDR width & height
+    expect(header.getUint32(0), 390 * 3); // full sheet width at the device's 3x density
+    expect(header.getUint32(4), lessThan(844 * 3)); // only the receipt region, not the whole screen
+    expect(tester.takeException(), isNull);
     await disposeApp(tester);
   });
 

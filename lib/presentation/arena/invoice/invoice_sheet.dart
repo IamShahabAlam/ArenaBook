@@ -1,16 +1,19 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
 
+import '../../../app/config/app_strings.dart';
 import '../../../app/config/arena_theme.dart';
 import '../../../app/service/getx_service/booking_service.dart';
 import '../../../app/service/service_handler.dart/settings_store.dart';
 import '../../../app/utils/custom_functions/arena_toast.dart';
 import '../../../app/utils/formatters/arena_format.dart';
 import '../../../data/models/booking.dart';
-import '../../../data/rules/booking_rules.dart';
 import '../../../data/rules/invoice_text.dart';
 import '../shell/booking_actions.dart';
 import '../widgets/arena_widgets.dart';
@@ -20,7 +23,7 @@ import '../widgets/whatsapp_logo.dart';
 import 'contact_customer_sheet.dart';
 
 /// Digital receipt. Reads the booking reactively, so "Mark Paid" updates it in place.
-class InvoiceSheet extends StatelessWidget {
+class InvoiceSheet extends StatefulWidget {
   const InvoiceSheet({super.key, required this.bookingId});
 
   final String bookingId;
@@ -36,14 +39,46 @@ class InvoiceSheet extends StatelessWidget {
     );
   }
 
-  Future<void> _shareWhatsApp(Booking b) async {
-    final text = InvoiceText.whatsApp(b, currency: SettingsStore.to.currencySymbol.value);
-    final number = BookingRules.toWhatsAppNumber(b.phone);
-    final uri = Uri.parse('https://wa.me/$number?text=${Uri.encodeComponent(text)}');
+  /// Hands the receipt picture to the phone's share sheet. Swappable so tests can check the image.
+  static Future<void> Function(Uint8List png, Booking booking, Rect? origin) shareImage = _systemShare;
+
+  static Future<void> _systemShare(Uint8List png, Booking b, Rect? origin) async {
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile.fromData(png, mimeType: 'image/png')],
+        fileNameOverrides: ['ArenaBook-${b.id}.png'],
+        text: '${AppStrings.appName} booking receipt #${b.id}', // caption under the picture
+        sharePositionOrigin: origin, // iPad: where the share popover points
+      ),
+    );
+  }
+
+  @override
+  State<InvoiceSheet> createState() => _InvoiceSheetState();
+}
+
+class _InvoiceSheetState extends State<InvoiceSheet> {
+  final _receiptKey = GlobalKey(); // the region that becomes the shared picture
+  var _sharing = false;
+
+  /// Renders the receipt region to a PNG (like fintech "share receipt") and shares it.
+  Future<void> _shareImage(Booking b) async {
+    if (_sharing) return;
+    setState(() => _sharing = true);
     try {
-      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) ArenaToast.error('Could not open WhatsApp');
+      final boundary = _receiptKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return;
+      final image = await boundary.toImage(pixelRatio: MediaQuery.devicePixelRatioOf(context).clamp(2.0, 3.0));
+      final data = await image.toByteData(format: ui.ImageByteFormat.png);
+      image.dispose();
+      if (data == null || !mounted) return;
+      final box = context.findRenderObject() as RenderBox?;
+      final origin = box == null ? null : box.localToGlobal(Offset.zero) & box.size;
+      await InvoiceSheet.shareImage(data.buffer.asUint8List(), b, origin);
     } catch (_) {
-      ArenaToast.error('Could not open WhatsApp');
+      ArenaToast.error('Could not share the invoice');
+    } finally {
+      if (mounted) setState(() => _sharing = false);
     }
   }
 
@@ -56,7 +91,7 @@ class InvoiceSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.arena;
     return Obx(() {
-      final b = BookingService.to.byId(bookingId);
+      final b = BookingService.to.byId(widget.bookingId);
       if (b == null) return const SizedBox(height: 120);
       final badge = bookingBadge(b, c);
       final badgeLabel = switch (b.status) {
@@ -66,66 +101,86 @@ class InvoiceSheet extends StatelessWidget {
       };
 
       return SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(18, 0, 18, 18 + MediaQuery.paddingOf(context).bottom),
+        padding: EdgeInsets.only(bottom: 18 + MediaQuery.paddingOf(context).bottom),
         child: Column(
           children: [
-            // Contact sits top-right, away from Mark Paid at the bottom, so neither gets tapped by mistake.
-            SizedBox(
-              width: double.infinity, // full width, so the button reaches the right edge
-              child: Stack(
-                alignment: Alignment.center,
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(gradient: ArenaColors.ctaGradient, borderRadius: BorderRadius.circular(16)),
-                    child: Icon(b.sport.symbol, color: c.onAccent, size: 26),
-                  ).popIn(context, delay: const Duration(milliseconds: 120)),
-                  if (b.phone.isNotEmpty)
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: SoftButton(
-                        label: 'Contact',
-                        icon: Icons.contact_phone_rounded,
-                        tooltip: 'Contact customer',
-                        onPressed: () => ContactCustomerSheet.show(b),
+            Stack(
+              children: [
+                // Shared picture: tile, status, number and receipt. Own background and margins, so the image looks finished.
+                RepaintBoundary(
+                  key: _receiptKey,
+                  child: ColoredBox(
+                    color: c.surface,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 8, 18, 14),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(gradient: ArenaColors.ctaGradient, borderRadius: BorderRadius.circular(16)),
+                            child: Icon(b.sport.symbol, color: c.onAccent, size: 26),
+                          ).popIn(context, delay: const Duration(milliseconds: 120)),
+                          const SizedBox(height: 10),
+                          // Crossfades when the status changes (e.g. "Balance Due" -> "Paid In Full" after Mark Paid).
+                          AnimatedSwitcher(
+                            duration: context.motion(const Duration(milliseconds: 280)),
+                            transitionBuilder: (child, animation) => FadeTransition(
+                              opacity: animation,
+                              child: ScaleTransition(scale: Tween<double>(begin: 0.9, end: 1).animate(animation), child: child),
+                            ),
+                            child: ArenaBadge(key: ValueKey(badgeLabel), label: badgeLabel.toUpperCase(), color: badge.color),
+                          ),
+                          const SizedBox(height: 6),
+                          Text('#${b.id}', style: context.text.headlineSmall),
+                          Text('ARENABOOK · Official Ground Booking Receipt', style: context.text.bodySmall),
+                          const SizedBox(height: 14),
+                          _ReceiptBody(booking: b),
+                        ],
                       ),
                     ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-            // Crossfades when the status changes (e.g. "Balance Due" -> "Paid In Full" after Mark Paid).
-            AnimatedSwitcher(
-              duration: context.motion(const Duration(milliseconds: 280)),
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: ScaleTransition(scale: Tween<double>(begin: 0.9, end: 1).animate(animation), child: child),
-              ),
-              child: ArenaBadge(key: ValueKey(badgeLabel), label: badgeLabel.toUpperCase(), color: badge.color),
-            ),
-            const SizedBox(height: 6),
-            Text('#${b.id}', style: context.text.headlineSmall),
-            Text('ARENABOOK · Official Ground Booking Receipt', style: context.text.bodySmall),
-            const SizedBox(height: 14),
-            _ReceiptBody(booking: b),
-            const SizedBox(height: 14),
-            if (b.phone.isNotEmpty) GradientButton(label: 'Share via WhatsApp', leading: const WhatsAppLogo(), onPressed: () => _shareWhatsApp(b)),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: SoftButton(label: 'Copy Text', icon: Icons.copy_rounded, onPressed: () => _copy(b)),
+                  ),
                 ),
-                if (b.balanceDue > 0) ...[
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: SoftButton(label: 'Mark Paid', icon: Icons.done_all_rounded, tone: SoftTone.warning, onPressed: () => BookingActions.markPaid(b.id)),
+                // Outside the picture. Top-right,
+                if (b.phone.isNotEmpty)
+                  Positioned(
+                    top: 8,
+                    right: 18,
+                    child: SoftButton(
+                      label: 'Contact',
+                      icon: Icons.contact_phone_rounded,
+                      tooltip: 'Contact customer',
+                      onPressed: () => ContactCustomerSheet.show(b),
+                    ),
+                  ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: Column(
+                children: [
+                  GradientButton(label: 'Share via WhatsApp', leading: const WhatsAppLogo(), loading: _sharing, onPressed: () => _shareImage(b)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SoftButton(label: 'Copy Text', icon: Icons.copy_rounded, onPressed: () => _copy(b)),
+                      ),
+                      if (b.balanceDue > 0) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: SoftButton(
+                            label: 'Mark Paid',
+                            icon: Icons.done_all_rounded,
+                            tone: SoftTone.warning,
+                            onPressed: () => BookingActions.markPaid(b.id),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
-              ],
+              ),
             ),
           ],
         ),
