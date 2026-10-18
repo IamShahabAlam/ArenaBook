@@ -2,13 +2,14 @@ import 'package:get/get.dart';
 
 import '../../../data/models/sport.dart';
 import '../../config/app_cache.dart';
+import '../../config/app_client_config.dart';
 import 'cache_field.dart';
 
 /// Arena business settings (currency + an hourly rate per configured sport), saved to prefs.
 class SettingsStore extends GetxController {
   static SettingsStore get to => Get.find();
 
-  static const defaultCurrency = 'Rs';
+  static String get defaultCurrency => AppClientConfig.client.currency;
   static const maxHourlyRate = 1000000;
 
   final currencySymbol = CacheField<String>(AppCache.arena.currencySymbol, defaultCurrency);

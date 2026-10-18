@@ -1,12 +1,19 @@
 import 'dart:convert';
 
-/// Remote trial switch, read from the config Gist. Pure Dart so the rules are unit-tested.
+/// Remote trial switch, read from the config Gist. One Gist for every client, keyed by client id
+/// (the flavor). Pure Dart so the rules are unit-tested.
 ///
 /// ```json
-/// { "DataEntryStatus": 1, "IsAppEnable": false, "AppDisableAfterDate": "2026-10-20" }
+/// { "clients": { "demo": { "DataEntryStatus": 1, "IsAppEnable": false, "AppDisableAfterDate": "2026-10-20" } } }
 /// ```
 class AppAccess {
-  const AppAccess({required this.active, required this.enabled, this.blockFrom});
+  const AppAccess({required this.active, required this.enabled, this.blockFrom, this.notActivated = false});
+
+  /// The Gist is invalid or has no entry for this client: blocked until a valid entry is added.
+  static const unconfigured = AppAccess(active: true, enabled: false, notActivated: true);
+
+  /// Blocked because the Gist has no valid entry for this client, rather than by its own settings.
+  final bool notActivated;
 
   /// `DataEntryStatus == 1`. Anything else means the config is switched off and ignored.
   final bool active;
@@ -30,18 +37,20 @@ class AppAccess {
     return (from.difference(now).inMicroseconds / Duration.microsecondsPerDay).ceil();
   }
 
-  /// Null when the body isn't a JSON object, so a broken Gist edit never changes the app's state.
-  static AppAccess? tryParse(String body) {
+  /// [client]'s entry, or [unconfigured] when the body is invalid or has no valid entry for it.
+  static AppAccess parse(String body, {required String client}) {
     try {
       final json = jsonDecode(body);
-      if (json is! Map<String, dynamic>) return null;
+      final clients = json is Map<String, dynamic> ? json['clients'] : null;
+      final entry = clients is Map<String, dynamic> ? clients[client] : null;
+      if (entry is! Map<String, dynamic>) return unconfigured;
       return AppAccess(
-        active: _int(json['DataEntryStatus']) == 1,
-        enabled: _bool(json['IsAppEnable']) ?? true, // missing = enabled
-        blockFrom: _blockFrom(json['AppDisableAfterDate']),
+        active: _int(entry['DataEntryStatus']) == 1,
+        enabled: _bool(entry['IsAppEnable']) ?? true, // missing = enabled
+        blockFrom: _blockFrom(entry['AppDisableAfterDate']),
       );
     } catch (_) {
-      return null;
+      return unconfigured; // not JSON
     }
   }
 

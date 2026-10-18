@@ -17,11 +17,15 @@ import '../service_handler.dart/cache_field.dart';
 typedef AccessFetch = Future<({String body, DateTime? serverTime})?> Function();
 
 /// Enforces the remote trial switch ([AppAccess]).
-/// - The last valid config is cached, so a block holds offline and a broken Gist edit changes nothing.
+/// - The last Gist body GitHub returned is cached, so a block holds offline.
+/// - An invalid Gist, or one without this client, blocks as "not activated" until it is fixed.
 /// - Before the very first successful fetch there is no config, so the app runs (fail open).
 /// - "Now" never goes below the latest time already seen, so rewinding the phone clock doesn't help.
 class AppAccessService extends GetxService {
-  AppAccessService({AccessFetch? fetch, DateTime Function()? clock}) : _fetch = fetch ?? _fetchGist, _clock = clock ?? DateTime.now;
+  AppAccessService({AccessFetch? fetch, DateTime Function()? clock, String? client})
+    : _fetch = fetch ?? _fetchGist,
+      _clock = clock ?? DateTime.now,
+      _client = client ?? AppClientConfig.client.id;
 
   static AppAccessService get to => Get.find();
 
@@ -29,10 +33,14 @@ class AppAccessService extends GetxService {
 
   final AccessFetch _fetch;
   final DateTime Function() _clock;
+  final String _client; // this build's key in the Gist
   final _config = CacheField<String>(AppCache.general.accessConfig, '');
   final _latestTime = CacheField<int>(AppCache.general.accessLatestTime, 0);
 
   final blocked = false.obs;
+
+  /// Blocked because the Gist has no valid entry for this client (the dialog says "not activated").
+  final notActivated = false.obs;
 
   /// Days left while a dated trial is running (drawer notice); null otherwise.
   final trialDaysLeft = RxnInt();
@@ -83,7 +91,7 @@ class AppAccessService extends GetxService {
       final result = await _fetch();
       if (result != null) {
         if (result.serverTime case final server?) _remember(server.millisecondsSinceEpoch);
-        if (AppAccess.tryParse(result.body) != null) await _config.save(result.body);
+        await _config.save(result.body); // even an invalid one: it blocks until fixed
       }
     } catch (_) {
       // Offline or GitHub down: keep the cached config.
@@ -93,9 +101,11 @@ class AppAccessService extends GetxService {
 
   /// Applies the rules to the cached config and opens/closes the dialog to match. Returns true if blocked.
   bool _evaluate() {
-    final access = AppAccess.tryParse(_config.value);
+    final body = _config.value;
+    final access = body.isEmpty ? null : AppAccess.parse(body, client: _client); // empty = never fetched
     final now = _now();
     blocked.value = access?.isBlocked(now) ?? false;
+    notActivated.value = access?.notActivated ?? false;
     trialDaysLeft.value = access?.trialDaysLeft(now);
     _syncDialog();
     return blocked.value;
@@ -146,8 +156,13 @@ class AppAccessService extends GetxService {
   static Future<({String body, DateTime? serverTime})?> _fetchGist() async {
     // Unique query = fresh copy instead of GitHub's 5-minute cached one.
     final uri = Uri.parse(AppClientConfig.accessConfigUrl).replace(queryParameters: {'t': '${DateTime.now().millisecondsSinceEpoch}'});
-    final response = await http.get(uri).timeout(const Duration(seconds: 10));
-    if (response.statusCode != 200) return null;
+    return gistResult(await http.get(uri).timeout(const Duration(seconds: 10)));
+  }
+
+  /// Only a 200 from GitHub itself counts. A Wi-Fi login page or proxy answering instead must not block the app.
+  @visibleForTesting
+  static ({String body, DateTime? serverTime})? gistResult(http.Response response) {
+    if (response.statusCode != 200 || !response.headers.containsKey('x-github-request-id')) return null;
     DateTime? server;
     try {
       server = HttpDate.parse(response.headers['date'] ?? '');

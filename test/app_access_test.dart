@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:arenabook/app/service/getx_service/app_access_service.dart';
@@ -15,13 +16,16 @@ import 'package:arenabook/presentation/arena/shell/shell_controller.dart';
 
 import 'arena_app_test.dart' show disposeApp, now, pumpApp, setUpServices;
 
-String gist({Object? status = 1, Object? enabled = true, Object? date = ''}) =>
-    jsonEncode({'IsAppEnable': enabled, 'AppDisableAfterDate': date, 'DataEntryStatus': status, 'UserName': 'Shahab'});
+String gist({Object? status = 1, Object? enabled = true, Object? date = '', String client = 'demo'}) => jsonEncode({
+  'clients': {
+    client: {'IsAppEnable': enabled, 'AppDisableAfterDate': date, 'DataEntryStatus': status, 'UserName': 'Shahab'},
+  },
+});
 
 /// The Gist as first published: missing comma + trailing comma.
-const brokenGist = '{"IsAppEnable": false, "AppDisableAfterDate":"" "DataEntryStatus": 1, "UserName":"Shahab",}';
+const brokenGist = '{"clients": {"demo": {"IsAppEnable": false, "AppDisableAfterDate":"" "DataEntryStatus": 1, "UserName":"Shahab",}}}';
 
-bool blockedAt(String body, DateTime at) => AppAccess.tryParse(body)!.isBlocked(at);
+bool blockedAt(String body, DateTime at) => AppAccess.parse(body, client: 'demo').isBlocked(at);
 
 void main() {
   group('AppAccess rules', () {
@@ -47,12 +51,12 @@ void main() {
     });
 
     test('days left counts today, and only while a dated trial is running', () {
-      final trial = AppAccess.tryParse(gist(enabled: false, date: '2026-10-20'))!;
+      final trial = AppAccess.parse(gist(enabled: false, date: '2026-10-20'), client: 'demo');
       expect(trial.trialDaysLeft(DateTime(2026, 10, 10, 9)), 11);
       expect(trial.trialDaysLeft(DateTime(2026, 10, 20, 23, 59)), 1); // last day
       expect(trial.trialDaysLeft(DateTime(2026, 10, 21)), isNull); // expired: the dialog takes over
       for (final other in [gist(enabled: true, date: '2026-10-20'), gist(status: 0, enabled: false, date: '2026-10-20'), gist(enabled: false)]) {
-        expect(AppAccess.tryParse(other)!.trialDaysLeft(now), isNull, reason: other);
+        expect(AppAccess.parse(other, client: 'demo').trialDaysLeft(now), isNull, reason: other);
       }
     });
 
@@ -67,10 +71,50 @@ void main() {
       expect(blockedAt(gist(status: 1.0, enabled: 'TRUE'), now), isFalse);
     });
 
-    test('invalid JSON is rejected, not treated as enabled or disabled', () {
-      expect(AppAccess.tryParse(brokenGist), isNull);
-      expect(AppAccess.tryParse(''), isNull);
-      expect(AppAccess.tryParse('[1, 2]'), isNull);
+    test('invalid JSON blocks now as "not activated"', () {
+      for (final body in [brokenGist, '', '[1, 2]', '<html>Wi-Fi login</html>']) {
+        final access = AppAccess.parse(body, client: 'demo');
+        expect(access.isBlocked(now), isTrue, reason: body);
+        expect(access.notActivated, isTrue, reason: body);
+        expect(access.trialDaysLeft(now), isNull, reason: body);
+      }
+    });
+
+    test('each client reads only its own entry; an unlisted client is blocked', () {
+      final body = jsonEncode({
+        'clients': {
+          'demo': {'DataEntryStatus': 1, 'IsAppEnable': false},
+          'other': {'DataEntryStatus': 1, 'IsAppEnable': true},
+        },
+      });
+      expect(AppAccess.parse(body, client: 'demo').isBlocked(now), isTrue);
+      expect(AppAccess.parse(body, client: 'demo').notActivated, isFalse, reason: 'blocked by its own entry');
+      expect(AppAccess.parse(body, client: 'other').isBlocked(now), isFalse);
+      final unlisted = AppAccess.parse(body, client: 'new_arena');
+      expect(unlisted.isBlocked(now), isTrue);
+      expect(unlisted.notActivated, isTrue);
+    });
+
+    test('a Gist without the clients map, or a malformed entry, blocks as "not activated"', () {
+      final bodies = [
+        jsonEncode({'DataEntryStatus': 1, 'IsAppEnable': true}), // old single-client format
+        jsonEncode({'clients': []}),
+        jsonEncode({
+          'clients': {'demo': 'on'},
+        }),
+      ];
+      for (final body in bodies) {
+        expect(AppAccess.parse(body, client: 'demo').notActivated, isTrue, reason: body);
+      }
+    });
+
+    test('only a 200 from GitHub itself counts as the Gist', () {
+      final github = {'x-github-request-id': '3226:1B26', 'date': 'Sun, 18 Oct 2026 17:45:31 GMT'};
+      expect(AppAccessService.gistResult(http.Response('{}', 200, headers: github))?.body, '{}');
+      expect(AppAccessService.gistResult(http.Response('{}', 200, headers: github))?.serverTime, DateTime.utc(2026, 10, 18, 17, 45, 31));
+      expect(AppAccessService.gistResult(http.Response('<html>login</html>', 200)), isNull, reason: 'Wi-Fi portal or proxy');
+      expect(AppAccessService.gistResult(http.Response('404: Not Found', 404, headers: github)), isNull);
+      expect(AppAccessService.gistResult(http.Response('', 503, headers: github)), isNull);
     });
   });
 
@@ -98,9 +142,21 @@ void main() {
       expect((await service(fetch: () async => throw Exception('offline'))).blocked.value, isTrue);
     });
 
-    test('a broken Gist edit keeps the last valid config', () async {
-      await service(fetch: () async => (body: gist(enabled: false), serverTime: null));
-      expect((await service(fetch: () async => (body: brokenGist, serverTime: null))).blocked.value, isTrue);
+    test('a broken Gist edit blocks, holds offline, and lifts once fixed', () async {
+      await service(fetch: () async => (body: gist(enabled: true), serverTime: null));
+      final broken = await service(fetch: () async => (body: brokenGist, serverTime: null));
+      expect(broken.blocked.value, isTrue);
+      expect(broken.notActivated.value, isTrue);
+      expect((await service(fetch: () async => null)).blocked.value, isTrue, reason: 'offline restart keeps the block');
+      final fixed = await service(fetch: () async => (body: gist(enabled: true), serverTime: null));
+      expect(fixed.blocked.value, isFalse);
+      expect(fixed.notActivated.value, isFalse);
+    });
+
+    test('a Gist without this client blocks it', () async {
+      final s = await service(fetch: () async => (body: gist(client: 'another_arena'), serverTime: null));
+      expect(s.blocked.value, isTrue);
+      expect(s.notActivated.value, isTrue);
     });
 
     test('winding the phone clock back does not reopen a passed date', () async {
@@ -179,6 +235,37 @@ void main() {
     await tester.pumpAndSettle();
     expect(ShellController.to.tab.value, ArenaTab.addBooking);
 
+    await disposeApp(tester);
+  });
+
+  testWidgets('a bad Gist or a missing client shows "not activated", updates in place, and lifts once fixed', (tester) async {
+    var body = brokenGist;
+    await setUpServices();
+    await Get.delete<AppAccessService>(force: true);
+    Get.put(AppAccessService(fetch: () async => (body: body, serverTime: null), clock: () => now));
+    await pumpApp(tester, dark: false);
+    AppAccessService.to.startGuarding();
+    await tester.pumpAndSettle();
+
+    expect(find.text('App Not Activated'), findsOneWidget);
+    expect(find.text(TrialExpiredDialog.notActivatedMessage), findsOneWidget);
+    expect(find.text('WhatsApp Support'), findsOneWidget);
+    BookingActions.newBooking();
+    await tester.pumpAndSettle();
+    expect(ShellController.to.tab.value, ArenaTab.home, reason: 'bookings stay locked');
+
+    // Client added to the Gist but its trial is over: same dialog, now with the trial wording.
+    body = gist(enabled: false);
+    await tester.pump(const Duration(minutes: 1));
+    await tester.pumpAndSettle();
+    expect(find.text(TrialExpiredDialog.message), findsOneWidget);
+    expect(find.text(TrialExpiredDialog.notActivatedMessage), findsNothing);
+
+    body = gist(enabled: true);
+    await tester.pump(const Duration(minutes: 1));
+    await tester.pumpAndSettle();
+    expect(find.text(TrialExpiredDialog.message), findsNothing);
+    expect(tester.takeException(), isNull);
     await disposeApp(tester);
   });
 }

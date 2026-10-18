@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import '../../app/config/app_client_config.dart';
 import '../models/booking.dart';
 import '../models/time_range.dart';
 
@@ -118,13 +119,15 @@ class BookingRules {
   static String? validateEmail(String email) => email.trim().isEmpty || _emailPattern.hasMatch(email.trim()) ? null : 'Please enter a valid email';
 
   /// wa.me needs the international number without '+' or the local leading 0: 03001234567 -> 923001234567.
-  static String toWhatsAppNumber(String phone, {String countryCode = '92'}) {
+  /// [countryCode] defaults to the client's.
+  static String toWhatsAppNumber(String phone, {String? countryCode}) {
+    final code = countryCode ?? AppClientConfig.client.countryCode;
     final digits = digitsOnly(phone);
     if (digits.isEmpty) return '';
     if (digits.startsWith('00')) return digits.substring(2);
-    if (digits.startsWith(countryCode) && digits.length > 10) return digits;
-    if (digits.startsWith('0')) return '$countryCode${digits.substring(1)}';
-    return '$countryCode$digits';
+    if (digits.startsWith(code) && digits.length > 10) return digits;
+    if (digits.startsWith('0')) return '$code${digits.substring(1)}';
+    return '$code$digits';
   }
 
   /// Advance is clamped to 0..[totalFee] (the prototype allowed paying more than the fee).

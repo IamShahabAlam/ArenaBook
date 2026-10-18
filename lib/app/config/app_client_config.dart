@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show appFlavor;
 
 import '../../data/models/sport.dart';
+import 'clients/client_config.dart';
 
 class AppClientConfig {
   // Base URLs ------------------- (fill these per project)
@@ -8,45 +9,16 @@ class AppClientConfig {
   static String stageBaseUrl = '';
   static String localBaseUrl = '';
 
-  /// Remote trial switch (see AppAccess). Raw link without a revision id = always the latest version.
+  /// Remote trial switch for every client, keyed by client id (see AppAccess). Raw link without a revision id = always the latest version.
   static const accessConfigUrl = 'https://gist.githubusercontent.com/IamShahabAlam/017400e59bb8e4b791864f7971aa42fe/raw/ArenaBookConfig.json';
 
-  // Features -------------------
-  /// Discount field in the booking form and discount lines on invoices. (Not const: tests toggle it.)
-  static bool enableDiscount = true;
+  // Client -------------------
+  /// The client this build is for, picked by `--flavor <id>` (configs live in clients/).
+  static final client = ClientConfig.forFlavor(appFlavor);
 
-  // Sports -------------------
-  /// The arena's sports and their courts; the whole app follows this list.
-  /// Turn one off with `enabled: false`; add one by adding an entry. Never change an `id` once used.
-  /// (Not const: tests swap it.)
-  static List<Sport> sports = const [
-    Sport(
-      id: 'cricket',
-      label: 'Indoor Cricket',
-      shortLabel: 'Cricket',
-      icon: Icons.sports_cricket_rounded,
-      tone: SportTone.emerald,
-      defaultRate: 3500,
-      emoji: '🏏',
-      courts: [
-        Court(id: 'cricket-1', name: 'Turf Pitch 1 (Main)', description: 'Turf Pitch 1 (Main Pitch)'),
-        Court(id: 'cricket-2', name: 'Turf Pitch 2 (Express)', description: 'Turf Pitch 2 (Express Lane)'),
-        Court(id: 'cricket-3', name: 'Turf Pitch 3 (VIP Indoor)', description: 'Turf Pitch 3 (VIP Indoor Enclosure)'),
-      ],
-    ),
-    Sport(
-      id: 'padel',
-      label: 'Padel Court',
-      shortLabel: 'Padel',
-      icon: Icons.sports_tennis_rounded,
-      tone: SportTone.blue,
-      defaultRate: 3000,
-      emoji: '🎾',
-      courts: [
-        Court(id: 'padel-a', name: 'Court A Glass Panoramic', description: 'Court A Glass Panoramic'),
-        Court(id: 'padel-b', name: 'Court B Indoor Sky', description: 'Court B Indoor Sky'),
-        Court(id: 'padel-c', name: 'Court C Center Court', description: 'Court C Center Court'),
-      ],
-    ),
-  ];
+  /// Discount field in the booking form and discount lines on invoices. (Not final: tests toggle it.)
+  static bool enableDiscount = client.enableDiscount;
+
+  /// The arena's sports and their courts; the whole app follows this list. (Not final: tests swap it.)
+  static List<Sport> sports = client.sports;
 }

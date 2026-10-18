@@ -79,6 +79,8 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  # Client used when no --flavor is given (plain `flutter run`). Clients: lib/app/config/clients.
+  default-flavor: demo
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

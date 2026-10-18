@@ -1,0 +1,21 @@
+{
+    // One entry per client; the name is the flavor (= ClientConfig id in lib/app/config/clients).
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "demo",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "args": ["--flavor", "demo"]
+        },
+        {
+            "name": "demo (release)",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "flutterMode": "release",
+            "args": ["--flavor", "demo"]
+        }
+    ]
+}

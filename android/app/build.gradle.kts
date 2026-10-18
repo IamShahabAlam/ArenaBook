@@ -5,8 +5,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// One flavor per client, named by its ClientConfig id (lib/app/config/clients). A test keeps the two lists in sync.
+val clients = listOf("demo")
+
 android {
-    namespace = "com.example.arenabook"
+    namespace = "com.devcatstudios.arenabook"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -20,8 +23,8 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.arenabook"
+        // Each client's flavor appends ".<client>", e.g. com.devcatstudios.arenabook.demo. Never change it after a store upload.
+        applicationId = "com.devcatstudios.arenabook"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -35,6 +38,16 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
+    flavorDimensions += "client"
+    productFlavors {
+        clients.forEach { client ->
+            create(client) {
+                dimension = "client"
+                applicationIdSuffix = ".$client"
+            }
         }
     }
 }
