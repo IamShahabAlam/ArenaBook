@@ -2,7 +2,7 @@ import 'package:get/get.dart';
 
 import '../../../app/service/getx_service/booking_service.dart';
 import '../../../data/models/booking.dart';
-import '../../../data/models/sport.dart';
+import '../../../data/models/resource.dart';
 
 class CalendarController extends GetxController {
   late final month = _firstOfMonth(BookingService.to.now()).obs;
@@ -29,16 +29,16 @@ class CalendarController extends GetxController {
 
   void select(DateTime day) => selected.value = dateOnly(day);
 
-  /// Distinct sports with active bookings, per day of the visible month: one dot each, however many bookings.
-  /// Config order, so a sport's dot always sits in the same place.
-  Map<String, List<Sport>> get sportsByDay {
-    final byDay = <String, Set<Sport>>{};
+  /// Distinct resource types with active bookings, per day of the visible month: one dot each, however many bookings.
+  /// Config order, so a type's dot always sits in the same place.
+  Map<String, List<ResourceType>> get typesByDay {
+    final byDay = <String, Set<ResourceType>>{};
     for (final b in BookingService.to.bookings) {
       if (b.isCancelled || b.date.year != month.value.year || b.date.month != month.value.month) continue;
-      (byDay[dateKey(b.date)] ??= {}).add(b.sport);
+      (byDay[dateKey(b.date)] ??= {}).add(b.resourceType);
     }
-    int rank(Sport s) => switch (Sport.all.indexOf(s)) {
-      -1 => Sport.all.length, // removed from config: last
+    int rank(ResourceType s) => switch (ResourceType.all.indexOf(s)) {
+      -1 => ResourceType.all.length, // removed from config: last
       final i => i,
     };
     return {for (final e in byDay.entries) e.key: e.value.toList()..sort((a, b) => rank(a).compareTo(rank(b)))};

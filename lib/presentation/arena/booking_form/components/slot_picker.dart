@@ -22,7 +22,7 @@ class SlotPicker extends GetView<BookingFormController> {
     return Obx(() {
       // Touch the inputs this view depends on, so it rebuilds when any of them change.
       controller.date.value;
-      controller.courtId.value;
+      controller.resourceId.value;
       BookingService.to.bookings.length;
       final chosen = controller.chosenSlots.firstOrNull;
       final error = controller.timeError;

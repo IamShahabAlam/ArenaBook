@@ -1,5 +1,5 @@
 import '../models/booking.dart';
-import '../models/sport.dart';
+import '../models/resource.dart';
 
 /// Dashboard numbers. Cancelled bookings are excluded, as in the spec.
 class BookingStats {
@@ -17,11 +17,11 @@ class BookingStats {
   final int collectedAmount;
   final int totalValue;
 
-  /// [sport] null = all courts.
-  factory BookingStats.from(Iterable<Booking> bookings, {Sport? sport}) {
+  /// [resourceType] null = all resources.
+  factory BookingStats.from(Iterable<Booking> bookings, {ResourceType? resourceType}) {
     var total = 0, pending = 0, pendingCount = 0, collected = 0, value = 0;
     for (final b in bookings) {
-      if (b.isCancelled || (sport != null && b.sport != sport)) continue;
+      if (b.isCancelled || (resourceType != null && b.resourceType != resourceType)) continue;
       total++;
       value += b.payable; // revenue after discount
       collected += b.amountCollected;

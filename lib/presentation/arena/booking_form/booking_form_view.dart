@@ -7,7 +7,7 @@ import '../../../app/service/getx_service/booking_service.dart';
 import '../../../app/service/service_handler.dart/settings_store.dart';
 import '../../../app/utils/formatters/arena_format.dart';
 import '../../../data/models/booking.dart';
-import '../../../data/models/sport.dart';
+import '../../../data/models/resource.dart';
 import '../../../data/rules/booking_rules.dart';
 import '../shell/booking_actions.dart';
 import '../widgets/arena_widgets.dart';
@@ -34,8 +34,8 @@ class BookingFormView extends GetView<BookingFormController> {
         children: [
           const _FormHeader(),
           const SizedBox(height: 16),
-          const _SportPicker(),
-          const _CourtPicker(),
+          const _ResourceTypePicker(),
+          const _ResourcePicker(),
           const SizedBox(height: 16),
           const _DatePicker(),
           const SizedBox(height: 16),
@@ -99,9 +99,9 @@ class _FormHeader extends GetView<BookingFormController> {
   }
 }
 
-/// One card per offered sport (rows of up to 3). Hidden when there is only one sport to pick.
-class _SportPicker extends GetView<BookingFormController> {
-  const _SportPicker();
+/// One card per offered resource type (rows of up to 3). Hidden when there is only one to pick.
+class _ResourceTypePicker extends GetView<BookingFormController> {
+  const _ResourceTypePicker();
 
   static const _perRow = 3;
 
@@ -110,23 +110,23 @@ class _SportPicker extends GetView<BookingFormController> {
     final c = context.arena;
     return Obx(() {
       // Read the observables first: an Obx that returns early without reading any is a GetX error.
-      final selected = controller.sport.value;
+      final selected = controller.resourceType.value;
       controller.editingId.value; // formSports depends on the booking being edited
-      final sports = controller.formSports;
-      if (sports.length < 2) return const SizedBox.shrink();
+      final resourceTypes = controller.formResourceTypes;
+      if (resourceTypes.length < 2) return const SizedBox.shrink();
       final settings = SettingsStore.to; // rates are reactive: labels follow Settings
 
-      Widget card(Sport s) => Semantics(
+      Widget card(ResourceType s) => Semantics(
         selected: s == selected,
         button: true,
         child: ArenaCard(
-          onTap: () => controller.selectSport(s),
+          onTap: () => controller.selectResourceType(s),
           borderColor: s == selected ? s.fill(c) : null,
           gradient: s == selected ? ArenaCard.tint(context, s.fill(c)) : null,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
           child: Column(
             children: [
-              SportAvatar(sport: s, size: 42, bordered: true),
+              ResourceTypeAvatar(resourceType: s, size: 42, bordered: true),
               const SizedBox(height: 8),
               FittedBox(
                 fit: BoxFit.scaleDown,
@@ -145,14 +145,17 @@ class _SportPicker extends GetView<BookingFormController> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const FieldLabel('Select Sport Category'),
-            for (var i = 0; i < sports.length; i += _perRow) ...[
+            for (var i = 0; i < resourceTypes.length; i += _perRow) ...[
               if (i > 0) const SizedBox(height: 12),
               Row(
                 children: [
-                  for (var j = i; j < i + _perRow && j < sports.length; j++) ...[if (j > i) const SizedBox(width: 12), Expanded(child: card(sports[j]))],
+                  for (var j = i; j < i + _perRow && j < resourceTypes.length; j++) ...[
+                    if (j > i) const SizedBox(width: 12),
+                    Expanded(child: card(resourceTypes[j])),
+                  ],
                   // keep card widths equal on a short last row
-                  if (sports.length > _perRow)
-                    for (var j = sports.length; j < i + _perRow; j++) ...[const SizedBox(width: 12), const Expanded(child: SizedBox())],
+                  if (resourceTypes.length > _perRow)
+                    for (var j = resourceTypes.length; j < i + _perRow; j++) ...[const SizedBox(width: 12), const Expanded(child: SizedBox())],
                 ],
               ),
             ],
@@ -163,8 +166,8 @@ class _SportPicker extends GetView<BookingFormController> {
   }
 }
 
-class _CourtPicker extends GetView<BookingFormController> {
-  const _CourtPicker();
+class _ResourcePicker extends GetView<BookingFormController> {
+  const _ResourcePicker();
 
   @override
   Widget build(BuildContext context) {
@@ -174,25 +177,25 @@ class _CourtPicker extends GetView<BookingFormController> {
       children: [
         const FieldLabel('Select Court / Pitch'),
         Obx(() {
-          final courts = Court.forSport(controller.sport.value);
+          final resources = Resource.forType(controller.resourceType.value);
           return DropdownButtonFormField<String>(
-            // Key by sport: the options change completely when the sport changes.
-            key: ValueKey(controller.sport.value),
-            initialValue: controller.courtId.value,
+            // Key by resource type: the options change completely when it changes.
+            key: ValueKey(controller.resourceType.value),
+            initialValue: controller.resourceId.value,
             isExpanded: true,
             dropdownColor: c.surface,
             borderRadius: BorderRadius.circular(14),
             icon: Icon(Icons.expand_more_rounded, color: c.textSecondary),
             style: context.text.bodyMedium,
             items: [
-              for (final court in courts)
+              for (final resource in resources)
                 DropdownMenuItem(
-                  value: court.id,
-                  child: Text(court.description, overflow: TextOverflow.ellipsis),
+                  value: resource.id,
+                  child: Text(resource.description, overflow: TextOverflow.ellipsis),
                 ),
             ],
             onChanged: (id) {
-              if (id != null) controller.selectCourt(id);
+              if (id != null) controller.selectResource(id);
             },
           );
         }),

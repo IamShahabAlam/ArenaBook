@@ -5,7 +5,7 @@ import '../../../app/config/arena_theme.dart';
 import '../../../app/service/getx_service/booking_service.dart';
 import '../../../app/utils/formatters/arena_format.dart';
 import '../../../data/models/booking.dart';
-import '../../../data/models/sport.dart';
+import '../../../data/models/resource.dart';
 import '../shell/booking_actions.dart';
 import '../widgets/arena_widgets.dart';
 import '../widgets/booking_card.dart';
@@ -105,7 +105,7 @@ class CalendarView extends GetView<CalendarController> {
                     key: ValueKey(month),
                     month: month,
                     selected: controller.selected.value,
-                    sportsByDay: controller.sportsByDay,
+                    typesByDay: controller.typesByDay,
                     onSelect: controller.select,
                   ),
                 ),
@@ -151,11 +151,11 @@ class _NavButton extends StatelessWidget {
 }
 
 class _MonthGrid extends StatelessWidget {
-  const _MonthGrid({super.key, required this.month, required this.selected, required this.sportsByDay, required this.onSelect});
+  const _MonthGrid({super.key, required this.month, required this.selected, required this.typesByDay, required this.onSelect});
 
   final DateTime month;
   final DateTime selected;
-  final Map<String, List<Sport>> sportsByDay; // dateKey -> distinct sports booked that day
+  final Map<String, List<ResourceType>> typesByDay; // dateKey -> distinct resource types booked that day
   final ValueChanged<DateTime> onSelect;
 
   @override
@@ -183,7 +183,7 @@ class _MonthGrid extends StatelessWidget {
                         final day = DateTime(month.year, month.month, dayNumber);
                         final isSelected = isSameDay(day, selected);
                         final isToday = isSameDay(day, today);
-                        final sports = sportsByDay[dateKey(day)] ?? const <Sport>[];
+                        final resourceTypes = typesByDay[dateKey(day)] ?? const <ResourceType>[];
                         final bg = isSelected ? c.cricket : (isToday ? c.surfaceMuted : c.surface);
                         final fg = isSelected ? c.onAccent : (isToday ? c.cricketText : c.textPrimary);
                         final border = isSelected ? c.cricket : (isToday ? c.cricket.withValues(alpha: 0.6) : c.border);
@@ -193,7 +193,8 @@ class _MonthGrid extends StatelessWidget {
                           child: Semantics(
                             button: true,
                             selected: isSelected,
-                            label: '${ArenaFormat.longDate(day)}${sports.isEmpty ? '' : ', ${sports.map((s) => s.shortLabel).join(' and ')} bookings'}',
+                            label:
+                                '${ArenaFormat.longDate(day)}${resourceTypes.isEmpty ? '' : ', ${resourceTypes.map((s) => s.shortLabel).join(' and ')} bookings'}',
                             excludeSemantics: true,
                             child: Material(
                               color: bg,
@@ -220,19 +221,19 @@ class _MonthGrid extends StatelessWidget {
                                       Container(
                                         height: 8,
                                         padding: const EdgeInsets.symmetric(horizontal: 1.5, vertical: 1),
-                                        // Dark pill on the emerald selected cell, so every sport colour stays visible.
-                                        decoration: isSelected && sports.isNotEmpty
+                                        // Dark pill on the emerald selected cell, so every type colour stays visible.
+                                        decoration: isSelected && resourceTypes.isNotEmpty
                                             ? BoxDecoration(color: c.onAccent, borderRadius: BorderRadius.circular(4))
                                             : null,
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            for (final sport in sports)
+                                            for (final resourceType in resourceTypes)
                                               Container(
                                                 width: 6,
                                                 height: 6,
                                                 margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                                                decoration: BoxDecoration(shape: BoxShape.circle, color: sport.text(c)),
+                                                decoration: BoxDecoration(shape: BoxShape.circle, color: resourceType.text(c)),
                                               ),
                                           ],
                                         ),

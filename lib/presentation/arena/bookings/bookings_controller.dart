@@ -3,13 +3,13 @@ import 'package:get/get.dart';
 
 import '../../../app/service/getx_service/booking_service.dart';
 import '../../../data/models/booking.dart';
-import '../../../data/models/sport.dart';
+import '../../../data/models/resource.dart';
 
 enum Timeline { future, past, all }
 
 class BookingsController extends GetxController {
   final query = ''.obs;
-  final sportFilter = Rxn<Sport>();
+  final typeFilter = Rxn<ResourceType>();
   final timeline = Timeline.future.obs; // spec default
   final dateRange = Rxn<DateTimeRange>();
   final searchCtrl = TextEditingController();
@@ -34,7 +34,7 @@ class BookingsController extends GetxController {
 
     final result = BookingService.to.bookings.where((b) {
       if (q.isNotEmpty && !(b.customerName.toLowerCase().contains(q) || b.phone.contains(q) || b.id.toLowerCase().contains(q))) return false;
-      if (sportFilter.value != null && b.sport != sportFilter.value) return false;
+      if (typeFilter.value != null && b.resourceType != typeFilter.value) return false;
       if (range != null && (b.date.isBefore(range.start) || b.date.isAfter(range.end))) return false;
       return switch (timeline.value) {
         Timeline.future => b.isUpcoming(now),

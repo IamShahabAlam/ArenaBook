@@ -10,6 +10,10 @@ The owner books courts by the half hour, tracks advances and dues, and shares in
 All data stays on the device. Flutter 3.38 / Dart 3.10, GetX (state, routing, DI), Hive CE (bookings),
 SharedPreferences (settings). Built by DevCat Studios on the in-house GetX starter (`starter_proj_getx`).
 
+**It is being generalised** into a booking ledger for any business that rents time on a resource (studios, rooms, halls, cars).
+`docs/EXPANSION_PLAN.md` holds the agreed decisions, the core + business profile + client pattern, and the phases.
+Read it before any structural change. The core uses neutral names: `ResourceType` (was `Sport`) and `Resource` (was `Court`).
+
 ## Working rules (from the owner: follow these exactly)
 
 1. **Never commit.** Don't `git commit`, amend, push, or rewrite history unless the user asks in that message.
@@ -59,7 +63,7 @@ lib/
 ├── app/service/getx_service/     # BookingService, AppAccessService, + starter services
 ├── app/service/service_handler.dart/  # prefs-backed stores: SettingsStore, ThemeStore, CacheField
 ├── app/utils/                    # ArenaToast, ArenaFormat, ArenaLogo, Logger, starter widgets
-├── data/models/                  # Booking, Sport/Court, TimeRange, AppAccess (pure Dart + JSON)
+├── data/models/                  # Booking, ResourceType/Resource, TimeRange, AppAccess (pure Dart + JSON)
 ├── data/rules/                   # BookingRules, BookingStats, InvoiceText: pure, unit-tested logic
 ├── data/repositories/booking/    # BookingRepository interface + Hive and in-memory implementations
 └── presentation/
@@ -86,8 +90,8 @@ lib/
 **Clients (flavors):** one codebase ships a separate app per arena client. **The flavor name is the client id.**
 - `AppClientConfig.client` = `ClientConfig.forFlavor(appFlavor)`. Flutter compiles the flavor in, so there are no copy or symlink
   steps. No flavor (unit tests) means `demo`; an unknown flavor throws.
-- Per-client values (sports and courts, currency, WhatsApp country code, discount flag) live in `lib/app/config/clients/<id>.dart`.
-  Read them through `AppClientConfig` (`.client`, `.sports`, `.enableDiscount`), never by importing a client file.
+- Per-client values (resource types and resources, currency, WhatsApp country code, discount flag) live in `lib/app/config/clients/<id>.dart`.
+  Read them through `AppClientConfig` (`.client`, `.resourceTypes`, `.enableDiscount`), never by importing a client file.
 - Every client must be listed in each of these places: `ClientConfig.all`, `val clients` in `android/app/build.gradle.kts`,
   `clients` in `ios/Podfile`, the iOS `Debug-/Release-/Profile-<id>` configurations plus a `<id>.xcscheme`, and `.vscode/launch.json`.
   **Use `dart run tool/clients.dart add <id>`**, never hand edits; `test/clients_config_test.dart` fails when the lists drift.
@@ -113,9 +117,9 @@ lib/
 - Read colours only through `context.arena` (`ArenaColors` ThemeExtension) and text through `context.text`.
   Never hard-code colours in widgets. `*Text` tokens are for text/icons on surfaces; plain accents are for fills.
   Any UI must look right in **both light and dark** mode.
-- Sport colours come from `SportTone` via the `SportVisuals` extension (`sport.fill(c)`, `sport.text(c)`, `sport.onAvatar(c)`).
+- Resource-type colours come from `ResourceTone` via the `ResourceTypeVisuals` extension (`type.fill(c)`, `type.text(c)`, `type.onAvatar(c)`).
 - Reuse the shared widgets in `presentation/arena/widgets/arena_widgets.dart` (`ArenaCard`, `GradientButton`, `SoftButton`,
-  `ArenaSegmented`, `SportAvatar`, `ArenaBadge`, `SectionTitle`, `EmptyState`, `FieldLabel`), plus `BookingCard`/`BookingList` and `SportFilter`.
+  `ArenaSegmented`, `ResourceTypeAvatar`, `ArenaBadge`, `SectionTitle`, `EmptyState`, `FieldLabel`), plus `BookingCard`/`BookingList` and `ResourceTypeFilter`.
 - Dialogs: `ArenaDialog.show(...)`, and `ConfirmDialog.ask(...)` for confirmations. Toasts: `ArenaToast.success/error/show`
   (never `Get.snackbar`).
 - Motion: `.entrance(context, index:)`, `.popIn(context)`, `AnimatedNumber`, `TabFade` from `widgets/motion.dart`.
@@ -136,11 +140,15 @@ lib/
 
 ## Domain rules (invariants: don't break them)
 
-- **Sports and courts are config-driven:** `AppClientConfig.sports` (from the client's config) drives forms, filters, Settings rates, the calendar,
-  stats, and the tagline. Use `Sport.offered` (enabled) for pickers and filters, and `Sport.all` for lookups.
-  `Sport.fromName(id)` / `Court.byId(id)` fall back to placeholders, so old bookings still render.
-  **Never change a sport or court `id` once used**: bookings and prefs keys (`arena_<id>_hourly_rate`) store it.
+- **Resource types and resources are config-driven:** `AppClientConfig.resourceTypes` (from the client's config) drives forms, filters,
+  Settings rates, the calendar, stats, and the tagline. Use `ResourceType.offered` (enabled) for pickers and filters, and `ResourceType.all` for lookups.
+  `ResourceType.byId(id)` / `Resource.byId(id)` fall back to placeholders, so old bookings still render.
+  **Never change a resource type or resource `id` once used**: bookings and prefs keys (`arena_<id>_hourly_rate`) store it.
+  Stored booking JSON keeps the legacy keys `sport` and `courtId`; don't rename them.
   Never hard-code "cricket" or "padel" outside the config and the tests.
+- **Never branch on the business type or client id.** A difference between businesses is a value (config), a behaviour
+  (a sealed strategy class) or a flag (`Features`); see `docs/EXPANSION_PLAN.md`.
+- **No instalments:** a booking is paid as an advance plus the balance in one go. Overruns are handled by editing the booking.
 - **No double booking** on the same court. Overlap is half-open: 9–10 and 10–11 don't clash. A different court at
   the same time is allowed.
 - **Booking time:** one continuous range, start on a 30-minute step (any of the 24 hours), plus a duration. Bookings may cross midnight:
@@ -179,11 +187,11 @@ app through them.
 ## Tests (`test/`)
 
 - `booking_rules_test.dart` / `booking_service_test.dart`: pure logic. Use `InMemoryBookingRepository` and a fixed `clock`.
-- `arena_app_test.dart`: widget tests for the arena screens. `sports_config_test.dart`, `app_access_test.dart`,
+- `arena_app_test.dart`: widget tests for the arena screens. `resource_types_config_test.dart`, `app_access_test.dart`,
   `splash_and_logo_test.dart`, `cache_field_test.dart`, `response_cache_test.dart`.
-- Helpers: `test/helpers/sports.dart` (`cricket`, `padel` from config) and `temp_dir.dart` (Hive temp dirs with
+- Helpers: `test/helpers/resource_types.dart` (`cricket`, `padel` from config) and `temp_dir.dart` (Hive temp dirs with
   retries for Windows file locks).
-- `AppClientConfig.enableDiscount` and `.sports` are deliberately not `final`, so tests can toggle them. Restore them in `tearDown`.
+- `AppClientConfig.enableDiscount` and `.resourceTypes` are deliberately not `final`, so tests can toggle them. Restore them in `tearDown`.
 - `clients_config_test.dart` checks that every client is wired into the native files, launch.json and pubspec, and that client
   assets and icons are flavored correctly. `clients_tool_test.dart` runs `tool/clients.dart` on a temp copy of those files.
 - Put new pure logic in `data/rules` or a model, so it can be unit tested without widgets.

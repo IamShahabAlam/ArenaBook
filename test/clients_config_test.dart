@@ -33,11 +33,11 @@ void main() {
 
   test('every client offers at least one sport, with unique sport and court ids', () {
     for (final client in ClientConfig.all) {
-      expect(client.sports.where((s) => s.enabled), isNotEmpty, reason: client.id);
-      final sportIds = client.sports.map((s) => s.id).toList();
-      final courtIds = [for (final s in client.sports) ...s.courts.map((c) => c.id)];
-      expect(sportIds.toSet().length, sportIds.length, reason: client.id);
-      expect(courtIds.toSet().length, courtIds.length, reason: client.id);
+      expect(client.resourceTypes.where((s) => s.enabled), isNotEmpty, reason: client.id);
+      final typeIds = client.resourceTypes.map((s) => s.id).toList();
+      final resourceIds = [for (final s in client.resourceTypes) ...s.resources.map((c) => c.id)];
+      expect(typeIds.toSet().length, typeIds.length, reason: client.id);
+      expect(resourceIds.toSet().length, resourceIds.length, reason: client.id);
     }
   });
 

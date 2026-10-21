@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'helpers/sports.dart';
+import 'helpers/resource_types.dart';
 
 import 'helpers/temp_dir.dart';
 import 'package:hive_ce/hive.dart';
@@ -17,14 +17,14 @@ void main() {
     List<TimeRange>? slots,
     int advance = 500,
     int discount = 0,
-    String courtId = 'cricket-1',
+    String resourceId = 'cricket-1',
     DateTime? date,
     String phone = '03001234567',
   }) => BookingDraft(
     customerName: '  Zain Malik ',
     phone: phone,
-    sport: cricket,
-    courtId: courtId,
+    resourceType: cricket,
+    resourceId: resourceId,
     date: date ?? DateTime(2026, 10, 1),
     slots: slots ?? [TimeRange.hour(20)],
     hourlyRate: 1500,
@@ -57,8 +57,8 @@ void main() {
       // ...but 1AM onwards is free.
       expect((await s.create(draft(date: sun, slots: [TimeRange.hour(1)]))).id, 'TRF-1002');
       // And a Sunday early booking stops a new Saturday late one on another court only where they meet.
-      await s.create(draft(date: sun, courtId: 'cricket-2', slots: [const TimeRange(0, 60)]));
-      expect(() => s.create(draft(date: sat, courtId: 'cricket-2', slots: [const TimeRange(23 * 60, 25 * 60)])), throwsA(isA<BookingException>()));
+      await s.create(draft(date: sun, resourceId: 'cricket-2', slots: [const TimeRange(0, 60)]));
+      expect(() => s.create(draft(date: sat, resourceId: 'cricket-2', slots: [const TimeRange(23 * 60, 25 * 60)])), throwsA(isA<BookingException>()));
     });
 
     test('rejects double booking, including custom ranges', () async {
@@ -67,7 +67,7 @@ void main() {
       expect(() => s.create(draft()), throwsA(isA<BookingException>()));
       expect(() => s.create(draft(slots: [const TimeRange(20 * 60 + 30, 21 * 60 + 30)])), throwsA(isA<BookingException>()));
       // a different court is fine
-      expect((await s.create(draft(courtId: 'cricket-2'))).id, 'TRF-1002');
+      expect((await s.create(draft(resourceId: 'cricket-2'))).id, 'TRF-1002');
     });
 
     test('rejects past slots and bad phone', () async {

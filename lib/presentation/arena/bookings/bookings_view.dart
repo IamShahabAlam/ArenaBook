@@ -6,7 +6,7 @@ import '../../../app/service/getx_service/booking_service.dart';
 import '../../../app/utils/formatters/arena_format.dart';
 import '../widgets/arena_widgets.dart';
 import '../widgets/booking_card.dart';
-import '../widgets/sport_filter.dart';
+import '../widgets/resource_type_filter.dart';
 import 'bookings_controller.dart';
 
 class BookingsView extends GetView<BookingsController> {
@@ -70,7 +70,7 @@ class BookingsView extends GetView<BookingsController> {
           ),
         ),
         const SizedBox(height: 12),
-        Obx(() => SportFilter(selected: controller.sportFilter.value, onChanged: (s) => controller.sportFilter.value = s, longLabels: true, gap: 10)),
+        Obx(() => ResourceTypeFilter(selected: controller.typeFilter.value, onChanged: (s) => controller.typeFilter.value = s, longLabels: true, gap: 10)),
         Obx(
           () => ArenaSegmented<Timeline>(
             dense: true,

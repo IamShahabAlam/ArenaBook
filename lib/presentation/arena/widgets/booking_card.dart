@@ -34,7 +34,7 @@ class BookingCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              SportAvatar(sport: b.sport),
+              ResourceTypeAvatar(resourceType: b.resourceType),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -49,7 +49,7 @@ class BookingCard extends StatelessWidget {
                             text: '#${b.id}  ',
                             style: TextStyle(color: c.textMuted),
                           ),
-                          TextSpan(text: b.court.name),
+                          TextSpan(text: b.resource.name),
                         ],
                       ),
                       maxLines: 1,

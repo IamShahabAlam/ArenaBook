@@ -1,15 +1,15 @@
-import '../../../data/models/sport.dart';
+import '../../../data/models/resource.dart';
 import 'demo.dart';
 
 /// Everything that differs between clients. One file per client in this folder; `--flavor <id>` picks it.
 class ClientConfig {
-  const ClientConfig({required this.id, required this.sports, this.currency = 'Rs', this.countryCode = '92', this.enableDiscount = true});
+  const ClientConfig({required this.id, required this.resourceTypes, this.currency = 'Rs', this.countryCode = '92', this.enableDiscount = true});
 
   /// Flavor name and this client's key in the access Gist. Lowercase letters, digits and `_`; never change once shipped.
   final String id;
 
-  /// The arena's sports and courts; the whole app follows this list.
-  final List<Sport> sports;
+  /// The client's resource types (e.g. sports) and their resources (e.g. courts); the whole app follows this list.
+  final List<ResourceType> resourceTypes;
 
   /// Currency symbol until the owner changes it in Settings.
   final String currency;

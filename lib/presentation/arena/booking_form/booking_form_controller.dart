@@ -7,7 +7,7 @@ import '../../../app/service/getx_service/booking_service.dart';
 import '../../../app/service/service_handler.dart/settings_store.dart';
 import '../../../app/utils/custom_functions/arena_toast.dart';
 import '../../../data/models/booking.dart';
-import '../../../data/models/sport.dart';
+import '../../../data/models/resource.dart';
 import '../../../data/models/time_range.dart';
 import '../../../data/rules/booking_rules.dart';
 
@@ -21,8 +21,8 @@ class BookingFormController extends GetxController {
 
   // ─────────────── State ───────────────
   final editingId = RxnString();
-  final sport = Sport.offered.first.obs;
-  final courtId = Sport.offered.first.courts.first.id.obs;
+  final resourceType = ResourceType.offered.first.obs;
+  final resourceId = ResourceType.offered.first.resources.first.id.obs;
   // Always from the service clock (never DateTime.now()), so tests and the app agree on "today".
   late final date = dateOnly(_service.now()).obs;
   final startMinute = RxnInt(); // chosen start time, null = not picked yet
@@ -53,7 +53,7 @@ class BookingFormController extends GetxController {
     super.onInit();
     notesCtrl.addListener(() => notesLength.value = notesCtrl.text.length);
     // When the fee drops (fewer slots, rate change), cap the discount and advance to it.
-    everAll([startMinute, duration, sport, ..._settings.rateStreams], (_) => _capMoney());
+    everAll([startMinute, duration, resourceType, ..._settings.rateStreams], (_) => _capMoney());
   }
 
   @override
@@ -67,18 +67,18 @@ class BookingFormController extends GetxController {
 
   // ─────────────── Derived (read inside Obx) ───────────────
 
-  /// Sports to choose from: the offered ones, plus an edited booking's sport if it was switched off since.
-  List<Sport> get formSports {
-    final offered = Sport.offered;
-    final own = _original?.sport;
+  /// Resource types to choose from: the offered ones, plus an edited booking's type if it was switched off since.
+  List<ResourceType> get formResourceTypes {
+    final offered = ResourceType.offered;
+    final own = _original?.resourceType;
     return own == null || offered.contains(own) ? offered : [...offered, own];
   }
 
-  /// Agreed rate when editing the same sport, otherwise today's configured rate.
+  /// Agreed rate when editing the same resource type, otherwise today's configured rate.
   int get hourlyRate {
     final original = _original;
-    if (original != null && original.sport == sport.value) return original.hourlyRate;
-    return _settings.rateFor(sport.value);
+    if (original != null && original.resourceType == resourceType.value) return original.hourlyRate;
+    return _settings.rateFor(resourceType.value);
   }
 
   /// One continuous range: start + duration.
@@ -99,7 +99,7 @@ class BookingFormController extends GetxController {
   int get payable => totalFee - effectiveDiscount;
   int get balance => payable - BookingRules.clampAdvance(advance.value, payable);
 
-  List<TimeRange> get occupied => _service.occupied(date: date.value, courtId: courtId.value, excludeBookingId: editingId.value);
+  List<TimeRange> get occupied => _service.occupied(date: date.value, resourceId: resourceId.value, excludeBookingId: editingId.value);
 
   Set<TimeRange> get _keepPast => _original != null && isSameDay(_original!.date, date.value) ? _original!.slots.toSet() : const {};
 
@@ -133,16 +133,16 @@ class BookingFormController extends GetxController {
 
   // ─────────────── Inputs ───────────────
 
-  void selectSport(Sport value) {
-    if (sport.value == value) return;
-    sport.value = value;
-    courtId.value = Court.forSport(value).first.id;
+  void selectResourceType(ResourceType value) {
+    if (resourceType.value == value) return;
+    resourceType.value = value;
+    resourceId.value = Resource.forType(value).first.id;
     startMinute.value = null;
   }
 
-  void selectCourt(String id) {
-    if (courtId.value == id) return;
-    courtId.value = id;
+  void selectResource(String id) {
+    if (resourceId.value == id) return;
+    resourceId.value = id;
     startMinute.value = null;
   }
 
@@ -232,8 +232,8 @@ class BookingFormController extends GetxController {
     _original = b;
     editingId.value = b.id;
     _fillCustomer(b);
-    sport.value = b.sport;
-    courtId.value = b.courtId;
+    resourceType.value = b.resourceType;
+    resourceId.value = b.resourceId;
     date.value = b.date;
     _applySlots(b.slots);
     discount.value = b.discount;
@@ -242,13 +242,13 @@ class BookingFormController extends GetxController {
     _writeAdvance(b.amountCollected);
   }
 
-  /// Copies customer, sport and court to today, pre-selecting the same time when still free.
+  /// Copies customer, resource type and resource to today, pre-selecting the same time when still free.
   /// Returns true when the time could be kept.
   bool loadForRepeat(Booking b) {
     _clear();
     _fillCustomer(b);
-    sport.value = b.sport;
-    courtId.value = b.courtId;
+    resourceType.value = b.resourceType;
+    resourceId.value = b.resourceId;
     date.value = dateOnly(_service.now());
     final range = TimeRange(b.slots.first.startMinute, b.slots.last.endMinute);
     final free = BookingRules.validateSlots([range], date: date.value, now: _service.now(), occupied: occupied) == null;
@@ -307,8 +307,8 @@ class BookingFormController extends GetxController {
       phone: phoneCtrl.text,
       email: emailCtrl.text,
       notes: notesCtrl.text,
-      sport: sport.value,
-      courtId: courtId.value,
+      resourceType: resourceType.value,
+      resourceId: resourceId.value,
       date: date.value,
       slots: chosenSlots,
       hourlyRate: hourlyRate,
@@ -321,10 +321,10 @@ class BookingFormController extends GetxController {
       final id = editingId.value;
       final saved = id == null ? await _service.create(draft) : await _service.update(id, draft);
       ArenaToast.success(id == null ? 'Booking created! ID: #${saved.id}' : 'Updated booking #${saved.id}');
-      final keepSport = sport.value;
+      final keepType = resourceType.value;
       _clear();
-      sport.value = keepSport;
-      courtId.value = Court.forSport(keepSport).first.id;
+      resourceType.value = keepType;
+      resourceId.value = Resource.forType(keepType).first.id;
       return saved;
     } on BookingException catch (e) {
       ArenaToast.error(e.message);

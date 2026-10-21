@@ -103,7 +103,7 @@ class _PendingCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(b.customerName, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.titleSmall),
                     const SizedBox(height: 2),
-                    Text('${b.court.name} · ${ArenaFormat.shortDay(b.date)}', maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.bodySmall),
+                    Text('${b.resource.name} · ${ArenaFormat.shortDay(b.date)}', maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.bodySmall),
                     Text(b.phone, style: context.text.bodySmall?.copyWith(color: c.textMuted)),
                   ],
                 ),

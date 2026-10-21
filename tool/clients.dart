@@ -49,7 +49,7 @@ String addClient(Directory root, String id) {
       _replaceOnce(demo, 'const demo = ClientConfig(', 'const $name = ClientConfig('),
       "id: 'demo',",
       "id: '$id',",
-    ).replaceFirst(RegExp(r'^/// .*$', multiLine: true), '/// $id: copied from demo. Set its sports, courts, currency and switches.'),
+    ).replaceFirst(RegExp(r'^/// .*$', multiLine: true), '/// $id: copied from demo. Set its resource types, resources, currency and switches.'),
   );
 
   var registry = f.read('$configDir/client_config.dart');
@@ -72,7 +72,7 @@ String addClient(Directory root, String id) {
 
   f.commit();
   return 'Added client "$id" ($bundlePrefix.$id). Next:\n'
-      '  1. Edit $configDir/$id.dart (sports, courts, currency, switches).\n'
+      '  1. Edit $configDir/$id.dart (resource types, resources, currency, switches).\n'
       '  2. Optional: images in assets/clients/$id/ then `dart run tool/clients.dart assets $id`;\n'
       '     launcher icon in android/app/src/$id/res/ and ios/Runner/Assets.xcassets/AppIcon-$id.appiconset (then `ios-icon $id`).\n'
       '  3. Add "$id" to the clients map in the access Gist if it needs a trial switch.\n'

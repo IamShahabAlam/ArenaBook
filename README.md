@@ -42,7 +42,7 @@ before a build, so the native app and the Dart config can never disagree.
 
 | What | Where |
 |---|---|
-| Sports, courts, default rates, currency, WhatsApp country code, discount on/off | `lib/app/config/clients/<client>.dart` |
+| Resource types (sports) and resources (courts), default rates, currency, WhatsApp country code, discount on/off | `lib/app/config/clients/<client>.dart` |
 | Client's own images | `assets/clients/<client>/` (see below) |
 | Client's launcher icon (optional) | `android/app/src/<client>/res/`, `ios/Runner/Assets.xcassets/AppIcon-<client>.appiconset` |
 | Trial switch URL (one Gist for all clients) | `lib/app/config/app_client_config.dart` → `accessConfigUrl` |
@@ -129,7 +129,7 @@ lib/
 ├── app/config/              # strings, theme (arena_theme.dart), cache keys, AppClientConfig
 ├── app/config/clients/      # one ClientConfig per client (flavor)
 ├── app/service/getx_service/# BookingService (single source of truth), AppAccessService (trial switch)
-├── data/models/             # Booking, Sport/Court, TimeRange, AppAccess
+├── data/models/             # Booking, ResourceType/Resource, TimeRange, AppAccess
 ├── data/rules/              # pure booking rules and invoice text, unit-tested
 ├── data/repositories/       # Hive booking repository
 └── presentation/arena/      # shell (tabs + drawer), home, booking_form, bookings, pending, calendar, invoice, dialogs

@@ -7,7 +7,7 @@ import 'package:arenabook/app/config/app_strings.dart';
 import 'package:arenabook/app/service/getx_service/booking_service.dart';
 import 'package:arenabook/app/service/service_handler.dart/settings_store.dart';
 import 'package:arenabook/data/models/booking.dart';
-import 'package:arenabook/data/models/sport.dart';
+import 'package:arenabook/data/models/resource.dart';
 import 'package:arenabook/data/models/time_range.dart';
 import 'package:arenabook/data/rules/booking_stats.dart';
 import 'package:arenabook/data/rules/invoice_text.dart';
@@ -15,20 +15,20 @@ import 'package:arenabook/presentation/arena/booking_form/booking_form_controlle
 import 'package:arenabook/presentation/arena/dialogs/settings_dialog.dart';
 import 'package:arenabook/presentation/arena/shell/shell_controller.dart';
 import 'arena_app_test.dart' as app;
-import 'helpers/sports.dart';
+import 'helpers/resource_types.dart';
 
-const futsal = Sport(
+const futsal = ResourceType(
   id: 'futsal',
   label: 'Futsal Pitch',
   shortLabel: 'Futsal',
   icon: Icons.sports_soccer_rounded,
-  tone: SportTone.violet,
+  tone: ResourceTone.violet,
   defaultRate: 1800,
   emoji: '⚽',
-  courts: [Court(id: 'futsal-1', name: 'Futsal Arena 1', description: 'Futsal Arena 1 (5-a-side)')],
+  resources: [Resource(id: 'futsal-1', name: 'Futsal Arena 1', description: 'Futsal Arena 1 (5-a-side)')],
 );
 
-Sport disabled(Sport s) => Sport(
+ResourceType disabled(ResourceType s) => ResourceType(
   id: s.id,
   label: s.label,
   shortLabel: s.shortLabel,
@@ -36,37 +36,37 @@ Sport disabled(Sport s) => Sport(
   tone: s.tone,
   defaultRate: s.defaultRate,
   emoji: s.emoji,
-  courts: s.courts,
+  resources: s.resources,
   enabled: false,
 );
 
 void main() {
-  final original = AppClientConfig.sports;
+  final original = AppClientConfig.resourceTypes;
   tearDown(() async {
-    AppClientConfig.sports = original;
+    AppClientConfig.resourceTypes = original;
     await Get.deleteAll(force: true);
   });
 
   test('the shipped config is valid', () {
-    final sports = AppClientConfig.sports;
-    expect(Sport.offered, isNotEmpty, reason: 'at least one sport must be enabled');
-    expect(sports.map((s) => s.id).toSet().length, sports.length, reason: 'sport ids must be unique');
-    final courtIds = [for (final s in sports) ...s.courts.map((c) => c.id)];
-    expect(courtIds.toSet().length, courtIds.length, reason: 'court ids must be unique across sports');
-    for (final s in sports) {
-      expect(s.courts, isNotEmpty, reason: '${s.id} needs at least one court');
+    final resourceTypes = AppClientConfig.resourceTypes;
+    expect(ResourceType.offered, isNotEmpty, reason: 'at least one sport must be enabled');
+    expect(resourceTypes.map((s) => s.id).toSet().length, resourceTypes.length, reason: 'sport ids must be unique');
+    final resourceIds = [for (final s in resourceTypes) ...s.resources.map((c) => c.id)];
+    expect(resourceIds.toSet().length, resourceIds.length, reason: 'court ids must be unique across sports');
+    for (final s in resourceTypes) {
+      expect(s.resources, isNotEmpty, reason: '${s.id} needs at least one court');
       expect(s.defaultRate, greaterThan(0), reason: '${s.id} needs a default rate');
       expect(s.icon, isNotNull);
     }
   });
 
   testWidgets('cricket switched off: gone from filters, form and Settings; old bookings still show', (tester) async {
-    AppClientConfig.sports = [disabled(cricket), padel];
+    AppClientConfig.resourceTypes = [disabled(cricket), padel];
     final oldCricket = app.seeded(id: 'TRF-1001', hour: 20); // made while cricket was on
     await app.setUpServices(seed: [oldCricket]);
     await app.pumpApp(tester, dark: true);
 
-    expect(Sport.offered, [padel]);
+    expect(ResourceType.offered, [padel]);
     expect(AppStrings.appTagline, 'Padel Court Booking');
     expect(find.text('All Courts'), findsNothing); // one sport: no filter on Home
     expect(BookingStats.from(BookingService.to.bookings).totalBookings, 1); // history still counted
@@ -76,7 +76,7 @@ void main() {
     ShellController.to.go(ArenaTab.addBooking);
     await tester.pumpAndSettle();
     expect(find.text('Select Sport Category'), findsNothing);
-    expect(BookingFormController.to.sport.value, padel);
+    expect(BookingFormController.to.resourceType.value, padel);
 
     // Settings: only the padel rate.
     SettingsDialog.show();
@@ -89,18 +89,18 @@ void main() {
   });
 
   testWidgets('editing an old booking of a switched-off sport keeps that sport selectable', (tester) async {
-    AppClientConfig.sports = [disabled(cricket), padel];
+    AppClientConfig.resourceTypes = [disabled(cricket), padel];
     await app.setUpServices(
       seed: [app.seeded(id: 'TRF-1001', hour: 20, date: DateTime(2026, 10, 2))],
     );
     await app.pumpApp(tester, dark: true);
     BookingFormController.to.loadForEdit(BookingService.to.byId('TRF-1001')!);
-    expect(BookingFormController.to.formSports, [padel, cricket]);
+    expect(BookingFormController.to.formResourceTypes, [padel, cricket]);
     await app.disposeApp(tester);
   });
 
   testWidgets('a third sport appears everywhere from config alone', (tester) async {
-    AppClientConfig.sports = [cricket, padel, futsal];
+    AppClientConfig.resourceTypes = [cricket, padel, futsal];
     await app.setUpServices();
     await app.pumpApp(tester, dark: true);
 
@@ -118,17 +118,17 @@ void main() {
       BookingDraft(
         customerName: 'Ali',
         phone: '03001234567',
-        sport: futsal,
-        courtId: 'futsal-1',
+        resourceType: futsal,
+        resourceId: 'futsal-1',
         date: DateTime(2026, 10, 2),
         slots: [TimeRange.hour(20)],
         hourlyRate: SettingsStore.to.rateFor(futsal),
         advancePaid: 0,
       ),
     );
-    expect(b.court.name, 'Futsal Arena 1');
+    expect(b.resource.name, 'Futsal Arena 1');
     expect(InvoiceText.whatsApp(b, currency: 'Rs'), startsWith('⚽'));
-    expect(Sport.fromName(b.toJson()['sport'] as String), futsal);
+    expect(ResourceType.byId(b.toJson()['sport'] as String), futsal);
 
     SettingsDialog.show();
     await tester.pumpAndSettle();
@@ -144,10 +144,10 @@ void main() {
       ..['sport'] = 'squash'
       ..['courtId'] = 'squash-1';
     final b = Booking.fromJson(json);
-    expect(b.sport.id, 'squash');
-    expect(b.sport.label, 'squash');
-    expect(b.sport.enabled, isFalse);
-    expect(b.court.name, 'squash-1');
+    expect(b.resourceType.id, 'squash');
+    expect(b.resourceType.label, 'squash');
+    expect(b.resourceType.enabled, isFalse);
+    expect(b.resource.name, 'squash-1');
     expect(b.toJson()['sport'], 'squash'); // saved back unchanged
   });
 }

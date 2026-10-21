@@ -3,13 +3,13 @@ import 'package:get/get.dart';
 
 import '../../../app/config/arena_theme.dart';
 import '../../../app/utils/formatters/arena_format.dart';
-import '../../../data/models/sport.dart';
+import '../../../data/models/resource.dart';
 import '../shell/booking_actions.dart';
 import '../shell/shell_controller.dart';
 import '../widgets/arena_widgets.dart';
 import '../widgets/booking_card.dart';
 import '../widgets/motion.dart';
-import '../widgets/sport_filter.dart';
+import '../widgets/resource_type_filter.dart';
 import 'home_controller.dart';
 
 class HomeView extends GetView<HomeController> {
@@ -21,7 +21,7 @@ class HomeView extends GetView<HomeController> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
       children: [
-        Obx(() => SportFilter(selected: controller.sportFilter.value, onChanged: controller.setFilter, withAvatars: true, gap: 14)),
+        Obx(() => ResourceTypeFilter(selected: controller.typeFilter.value, onChanged: controller.setFilter, withAvatars: true, gap: 14)),
         Obx(() {
           final s = controller.stats;
           return GridView.count(
@@ -92,7 +92,7 @@ class HomeView extends GetView<HomeController> {
                       ],
                     ),
                     const SizedBox(height: 3),
-                    Text('Reserve a ${Sport.offered.map((s) => s.label).join(' or ')} slot', style: context.text.bodySmall),
+                    Text('Reserve a ${ResourceType.offered.map((s) => s.label).join(' or ')} slot', style: context.text.bodySmall),
                   ],
                 ),
               ),
@@ -113,9 +113,9 @@ class HomeView extends GetView<HomeController> {
             bookings: controller.upcoming,
             empty: EmptyState(
               icon: Icons.event_busy_rounded,
-              message: controller.sportFilter.value == null
+              message: controller.typeFilter.value == null
                   ? 'No upcoming bookings yet.'
-                  : 'No upcoming ${controller.sportFilter.value!.shortLabel.toLowerCase()} bookings.',
+                  : 'No upcoming ${controller.typeFilter.value!.shortLabel.toLowerCase()} bookings.',
               action: GradientButton(label: 'Create a booking', icon: Icons.add_rounded, expanded: false, compact: true, onPressed: BookingActions.newBooking),
             ),
           ),

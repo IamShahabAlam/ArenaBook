@@ -2,21 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../app/config/arena_theme.dart';
-import '../../../data/models/sport.dart';
+import '../../../data/models/resource.dart';
 import 'motion.dart';
 
-/// Visual identity per sport, from its configured icon and [SportTone].
-extension SportVisuals on Sport {
+/// Visual identity per resource type, from its configured icon and [ResourceTone].
+extension ResourceTypeVisuals on ResourceType {
   IconData get symbol => icon ?? Icons.sports_rounded;
 
-  /// (fill, text on surface, icon on the dark avatar) for this sport's tone.
+  /// (fill, text on surface, icon on the dark avatar) for this type's tone.
   (Color, Color, Color) _tone(ArenaColors c) {
     final dark = c.textPrimary.computeLuminance() > 0.5; // light text = dark theme
     return switch (tone) {
-      SportTone.emerald => (c.cricket, c.cricketText, c.cricketOnAvatar),
-      SportTone.blue => (c.padel, c.padelText, c.padelOnAvatar),
-      SportTone.violet => (const Color(0xFF8B5CF6), dark ? const Color(0xFFA78BFA) : const Color(0xFF6D28D9), const Color(0xFFA78BFA)),
-      SportTone.orange => (const Color(0xFFF97316), dark ? const Color(0xFFFB923C) : const Color(0xFFC2410C), const Color(0xFFFB923C)),
+      ResourceTone.emerald => (c.cricket, c.cricketText, c.cricketOnAvatar),
+      ResourceTone.blue => (c.padel, c.padelText, c.padelOnAvatar),
+      ResourceTone.violet => (const Color(0xFF8B5CF6), dark ? const Color(0xFFA78BFA) : const Color(0xFF6D28D9), const Color(0xFFA78BFA)),
+      ResourceTone.orange => (const Color(0xFFF97316), dark ? const Color(0xFFFB923C) : const Color(0xFFC2410C), const Color(0xFFFB923C)),
     };
   }
 
@@ -64,11 +64,11 @@ class ArenaCard extends StatelessWidget {
   }
 }
 
-/// Sport icon on a dark circle; stays dark in light mode for contrast (spec).
-class SportAvatar extends StatelessWidget {
-  const SportAvatar({super.key, required this.sport, this.size = 36, this.bordered = false});
+/// Resource-type icon on a dark circle; stays dark in light mode for contrast (spec).
+class ResourceTypeAvatar extends StatelessWidget {
+  const ResourceTypeAvatar({super.key, required this.resourceType, this.size = 36, this.bordered = false});
 
-  final Sport sport;
+  final ResourceType resourceType;
   final double size;
   final bool bordered;
 
@@ -81,9 +81,9 @@ class SportAvatar extends StatelessWidget {
       decoration: BoxDecoration(
         color: c.avatarBackground,
         shape: BoxShape.circle,
-        border: Border.all(color: bordered ? sport.fill(c).withValues(alpha: 0.45) : Colors.transparent),
+        border: Border.all(color: bordered ? resourceType.fill(c).withValues(alpha: 0.45) : Colors.transparent),
       ),
-      child: Icon(sport.symbol, size: size * 0.5, color: sport.onAvatar(c)),
+      child: Icon(resourceType.symbol, size: size * 0.5, color: resourceType.onAvatar(c)),
     );
   }
 }
@@ -95,7 +95,7 @@ class SegmentOption<T> {
   final Widget? leading;
 }
 
-/// Pill segmented control (sport filters, timeline toggle, slot mode).
+/// Pill segmented control (resource-type filters, timeline toggle, slot mode).
 class ArenaSegmented<T> extends StatelessWidget {
   const ArenaSegmented({super.key, required this.options, required this.selected, required this.onChanged, this.dense = false});
 

@@ -1,16 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'helpers/sports.dart';
+import 'helpers/resource_types.dart';
 
 import 'package:arenabook/data/models/booking.dart';
-import 'package:arenabook/data/models/sport.dart';
+import 'package:arenabook/data/models/resource.dart';
 import 'package:arenabook/data/models/time_range.dart';
 import 'package:arenabook/data/rules/booking_rules.dart';
 import 'package:arenabook/data/rules/booking_stats.dart';
 
 Booking booking({
   String id = 'TRF-1001',
-  String courtId = 'cricket-1',
-  Sport? sport,
+  String resourceId = 'cricket-1',
+  ResourceType? resourceType,
   DateTime? date,
   List<TimeRange>? slots,
   int totalFee = 1500,
@@ -25,8 +25,8 @@ Booking booking({
     id: id,
     customerName: 'Zain Malik',
     phone: '03001234567',
-    sport: sport ?? cricket,
-    courtId: courtId,
+    resourceType: resourceType ?? cricket,
+    resourceId: resourceId,
     date: date ?? DateTime(2026, 10, 1),
     slots: slots ?? [TimeRange.hour(20)],
     hourlyRate: 1500,
@@ -144,18 +144,18 @@ void main() {
         booking(),
         booking(id: 'TRF-1002', slots: [TimeRange.hour(18)], cancelledAt: day),
       ];
-      expect(BookingRules.occupied(list, date: day, courtId: 'cricket-1'), [TimeRange.hour(20)]);
+      expect(BookingRules.occupied(list, date: day, resourceId: 'cricket-1'), [TimeRange.hour(20)]);
     });
 
     test('other courts and far days are ignored, edited booking excluded', () {
-      final list = [booking(), booking(id: 'TRF-1002', courtId: 'cricket-2'), booking(id: 'TRF-1003', date: DateTime(2026, 10, 3))];
-      expect(BookingRules.occupied(list, date: day, courtId: 'cricket-1'), [TimeRange.hour(20)]);
-      expect(BookingRules.occupied(list, date: day, courtId: 'cricket-1', excludeBookingId: 'TRF-1001'), isEmpty);
+      final list = [booking(), booking(id: 'TRF-1002', resourceId: 'cricket-2'), booking(id: 'TRF-1003', date: DateTime(2026, 10, 3))];
+      expect(BookingRules.occupied(list, date: day, resourceId: 'cricket-1'), [TimeRange.hour(20)]);
+      expect(BookingRules.occupied(list, date: day, resourceId: 'cricket-1', excludeBookingId: 'TRF-1001'), isEmpty);
     });
 
     test("the next day's bookings count, on this day's timeline (a late booking could reach them)", () {
       final tomorrow = booking(id: 'TRF-1003', date: DateTime(2026, 10, 2)); // 8-9 PM tomorrow
-      expect(BookingRules.occupied([tomorrow], date: day, courtId: 'cricket-1'), [const TimeRange(20 * 60 + 1440, 21 * 60 + 1440)]);
+      expect(BookingRules.occupied([tomorrow], date: day, resourceId: 'cricket-1'), [const TimeRange(20 * 60 + 1440, 21 * 60 + 1440)]);
     });
 
     test('30-minute cell states', () {
@@ -241,7 +241,7 @@ void main() {
       final day = DateTime(2026, 10, 1);
       final list = [
         booking(),
-        booking(id: 'TRF-1002', sport: padel, courtId: 'padel-a', totalFee: 2000, advancePaid: 2000),
+        booking(id: 'TRF-1002', resourceType: padel, resourceId: 'padel-a', totalFee: 2000, advancePaid: 2000),
         booking(id: 'TRF-1003', cancelledAt: day),
       ];
       final all = BookingStats.from(list);
@@ -251,7 +251,7 @@ void main() {
       expect(all.pendingAmount, 1000);
       expect(all.pendingCount, 1);
 
-      final padelStats = BookingStats.from(list, sport: padel);
+      final padelStats = BookingStats.from(list, resourceType: padel);
       expect(padelStats.totalBookings, 1);
       expect(padelStats.pendingAmount, 0);
     });
@@ -307,14 +307,14 @@ void main() {
     final lateSat = booking(id: 'TRF-1001', date: sat, slots: [const TimeRange(23 * 60, 25 * 60)]); // Sat 11PM - Sun 1AM
 
     test("a Saturday 11PM-1AM booking blocks Sunday's 12-1AM", () {
-      expect(BookingRules.occupied([lateSat], date: sun, courtId: 'cricket-1'), [const TimeRange(0, 60)]);
+      expect(BookingRules.occupied([lateSat], date: sun, resourceId: 'cricket-1'), [const TimeRange(0, 60)]);
       expect(BookingRules.cellState(0, date: sun, now: now, occupied: [const TimeRange(0, 60)]), SlotState.booked);
       expect(BookingRules.cellState(60, date: sun, now: now, occupied: [const TimeRange(0, 60)]), SlotState.available);
     });
 
     test("Sunday's early booking limits a Saturday late booking", () {
       final earlySun = booking(id: 'TRF-1002', date: sun, slots: [const TimeRange(30, 90)]); // Sun 12:30-1:30AM
-      final seenFromSat = BookingRules.occupied([earlySun], date: sat, courtId: 'cricket-1');
+      final seenFromSat = BookingRules.occupied([earlySun], date: sat, resourceId: 'cricket-1');
       expect(seenFromSat, [const TimeRange(1470, 1530)]);
       expect(BookingRules.maxDuration(23 * 60, occupied: seenFromSat), 90); // 11PM -> 12:30AM
       expect(BookingRules.validateSlots([const TimeRange(23 * 60, 25 * 60)], date: sat, now: now, occupied: seenFromSat), contains('clashes'));
@@ -322,8 +322,8 @@ void main() {
     });
 
     test('bookings two days away and other courts are ignored', () {
-      expect(BookingRules.occupied([lateSat], date: DateTime(2026, 10, 5), courtId: 'cricket-1'), isEmpty);
-      expect(BookingRules.occupied([lateSat], date: sun, courtId: 'cricket-2'), isEmpty);
+      expect(BookingRules.occupied([lateSat], date: DateTime(2026, 10, 5), resourceId: 'cricket-1'), isEmpty);
+      expect(BookingRules.occupied([lateSat], date: sun, resourceId: 'cricket-2'), isEmpty);
     });
 
     test('limits: 24 hours max, must start on the booking date', () {

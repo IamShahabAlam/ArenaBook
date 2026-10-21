@@ -50,7 +50,7 @@ class ArenaColors extends ThemeExtension<ArenaColors> {
   final Color danger; // red fill
   final Color dangerText;
   final Color onAccent; // text/icons on emerald, lime & amber fills
-  final Color avatarBackground; // sport icon circles stay dark in both modes (spec)
+  final Color avatarBackground; // resource-type icon circles stay dark in both modes (spec)
   final Color navBar;
   final Color overlay; // modal barrier
 
@@ -109,7 +109,7 @@ class ArenaColors extends ThemeExtension<ArenaColors> {
     overlay: Color(0x99000000),
   );
 
-  /// Icon colour inside the always-dark sport avatar (bright shades in both modes).
+  /// Icon colour inside the always-dark resource-type avatar (bright shades in both modes).
   Color get cricketOnAvatar => const Color(0xFF34D399);
   Color get padelOnAvatar => const Color(0xFF60A5FA);
 

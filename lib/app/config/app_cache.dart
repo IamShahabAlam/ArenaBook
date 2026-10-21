@@ -13,7 +13,7 @@ class _Arena {
   final String currencySymbol = 'arena_currency_symbol';
 
   /// e.g. 'arena_cricket_hourly_rate' (same keys as before, so saved rates carry over).
-  String hourlyRate(String sportId) => 'arena_${sportId}_hourly_rate';
+  String hourlyRate(String typeId) => 'arena_${typeId}_hourly_rate';
 }
 
 class _User {

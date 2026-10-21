@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'helpers/sports.dart';
+import 'helpers/resource_types.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -16,7 +16,7 @@ import 'package:arenabook/app/utils/custom_functions/arena_toast.dart';
 import 'package:arenabook/app/service/service_handler.dart/settings_store.dart';
 import 'package:arenabook/app/service/service_handler.dart/theme_store.dart';
 import 'package:arenabook/data/models/booking.dart';
-import 'package:arenabook/data/models/sport.dart';
+import 'package:arenabook/data/models/resource.dart';
 import 'package:arenabook/data/models/time_range.dart';
 import 'package:arenabook/data/repositories/booking/booking_repository.dart';
 import 'package:arenabook/data/rules/invoice_text.dart';
@@ -67,12 +67,12 @@ Future<void> disposeApp(WidgetTester tester) async {
   await tester.pump(const Duration(seconds: 1));
 }
 
-Booking seeded({required String id, required int hour, int advance = 500, DateTime? date, Sport? sport}) => Booking(
+Booking seeded({required String id, required int hour, int advance = 500, DateTime? date, ResourceType? resourceType}) => Booking(
   id: id,
   customerName: 'Ayesha Khan',
   phone: '03219876543',
-  sport: sport ?? cricket,
-  courtId: (sport ?? cricket) == cricket ? 'cricket-1' : 'padel-a',
+  resourceType: resourceType ?? cricket,
+  resourceId: (resourceType ?? cricket) == cricket ? 'cricket-1' : 'padel-a',
   date: date ?? DateTime(2026, 10, 1),
   slots: [TimeRange.hour(hour)],
   hourlyRate: 1500,
@@ -169,7 +169,7 @@ void main() {
           dark: dark,
           seed: [
             seeded(id: 'TRF-1001', hour: 20),
-            seeded(id: 'TRF-1002', hour: 21, advance: 1500, sport: padel),
+            seeded(id: 'TRF-1002', hour: 21, advance: 1500, resourceType: padel),
             seeded(id: 'TRF-1003', hour: 18, date: DateTime(2026, 9, 28)),
           ],
         );
@@ -277,14 +277,14 @@ void main() {
       seed: [
         seeded(id: 'TRF-1001', hour: 9, date: oct10),
         seeded(id: 'TRF-1002', hour: 11, date: oct10),
-        seeded(id: 'TRF-1003', hour: 15, date: oct10, sport: padel),
-        seeded(id: 'TRF-1004', hour: 18, date: DateTime(2026, 10, 12), sport: padel).cancel(reason: 'Rain', advanceReturned: true, now: now),
+        seeded(id: 'TRF-1003', hour: 15, date: oct10, resourceType: padel),
+        seeded(id: 'TRF-1004', hour: 18, date: DateTime(2026, 10, 12), resourceType: padel).cancel(reason: 'Rain', advanceReturned: true, now: now),
       ],
     );
     await pumpApp(tester, dark: true);
 
     // 2 cricket + 1 padel = 2 dots; a cancelled booking leaves no dot.
-    expect(Get.find<CalendarController>().sportsByDay, {
+    expect(Get.find<CalendarController>().typesByDay, {
       dateKey(oct10): [cricket, padel],
     });
     ShellController.to.go(ArenaTab.calendar);

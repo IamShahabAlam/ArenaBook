@@ -6,7 +6,7 @@ import '../../../app/config/arena_theme.dart';
 import '../../../app/service/service_handler.dart/settings_store.dart';
 import '../../../app/service/service_handler.dart/theme_store.dart';
 import '../../../app/utils/custom_functions/arena_toast.dart';
-import '../../../data/models/sport.dart';
+import '../../../data/models/resource.dart';
 import '../widgets/arena_widgets.dart';
 import 'arena_dialog.dart';
 
@@ -25,8 +25,8 @@ class _SettingsDialogState extends State<SettingsDialog> {
   final _settings = SettingsStore.to;
   late final _currency = TextEditingController(text: _settings.currencySymbol.value);
 
-  /// One rate field per offered sport.
-  late final _rates = {for (final s in Sport.offered) s: TextEditingController(text: '${_settings.rateFor(s)}')};
+  /// One rate field per offered resource type.
+  late final _rates = {for (final s in ResourceType.offered) s: TextEditingController(text: '${_settings.rateFor(s)}')};
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -110,7 +110,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
               decoration: const InputDecoration(hintText: 'e.g. Rs, \$, AED', counterText: ''),
             ),
             const SizedBox(height: 12),
-            // Two rate fields per row, one per offered sport.
+            // Two rate fields per row, one per offered resource type.
             LayoutBuilder(
               builder: (context, box) => Wrap(
                 spacing: 10,

@@ -119,7 +119,7 @@ class _InvoiceSheetState extends State<InvoiceSheet> {
                             width: 52,
                             height: 52,
                             decoration: BoxDecoration(gradient: ArenaColors.ctaGradient, borderRadius: BorderRadius.circular(16)),
-                            child: Icon(b.sport.symbol, color: c.onAccent, size: 26),
+                            child: Icon(b.resourceType.symbol, color: c.onAccent, size: 26),
                           ).popIn(context, delay: const Duration(milliseconds: 120)),
                           const SizedBox(height: 10),
                           // Crossfades when the status changes (e.g. "Balance Due" -> "Paid In Full" after Mark Paid).
@@ -257,7 +257,7 @@ class _ReceiptBody extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Divider(color: c.border),
           ),
-          line('Ground/Court:', b.court.name, color: b.sport.text(c)),
+          line('Ground/Court:', b.resource.name, color: b.resourceType.text(c)),
           line('Time Slot(s):', b.slotsLabel),
           line('Duration:', '${ArenaFormat.hours(b.totalMinutes)} @ ${ArenaFormat.money(b.hourlyRate)}/hr'),
           if (b.notes.isNotEmpty) line('Notes:', b.notes),

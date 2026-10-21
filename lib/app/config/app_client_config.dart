@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart' show appFlavor;
 
-import '../../data/models/sport.dart';
+import '../../data/models/resource.dart';
 import 'clients/client_config.dart';
 
 class AppClientConfig {
@@ -19,6 +19,6 @@ class AppClientConfig {
   /// Discount field in the booking form and discount lines on invoices. (Not final: tests toggle it.)
   static bool enableDiscount = client.enableDiscount;
 
-  /// The arena's sports and their courts; the whole app follows this list. (Not final: tests swap it.)
-  static List<Sport> sports = client.sports;
+  /// The client's resource types and their resources; the whole app follows this list. (Not final: tests swap it.)
+  static List<ResourceType> resourceTypes = client.resourceTypes;
 }

@@ -36,14 +36,14 @@ class BookingRules {
   static const maxPhoneLength = 11;
   static const minPhoneLength = 10;
 
-  /// Ranges already taken on [courtId] for [date], in that day's minutes (cancelled bookings free their slots).
+  /// Ranges already taken on [resourceId] for [date], in that day's minutes (cancelled bookings free their slots).
   /// Includes the previous day's bookings that run past midnight and the next day's, so late-night
   /// bookings conflict correctly from either date. [excludeBookingId] is the booking being edited.
-  static List<TimeRange> occupied(Iterable<Booking> bookings, {required DateTime date, required String courtId, String? excludeBookingId}) {
+  static List<TimeRange> occupied(Iterable<Booking> bookings, {required DateTime date, required String resourceId, String? excludeBookingId}) {
     final day = dateOnly(date);
     final result = <TimeRange>[];
     for (final b in bookings) {
-      if (b.isCancelled || b.courtId != courtId || b.id == excludeBookingId) continue;
+      if (b.isCancelled || b.resourceId != resourceId || b.id == excludeBookingId) continue;
       final offset = DateTime.utc(b.date.year, b.date.month, b.date.day).difference(DateTime.utc(day.year, day.month, day.day)).inDays;
       if (offset.abs() > 1) continue;
       for (final s in b.slots) {

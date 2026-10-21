@@ -19,14 +19,14 @@ class InvoiceText {
   /// WhatsApp message (*bold* is WhatsApp markdown).
   static String whatsApp(Booking b, {required String currency, bool? discountEnabled}) {
     String m(int v) => ArenaFormat.money(v, symbol: currency);
-    final emoji = b.sport.emoji;
+    final emoji = b.resourceType.emoji;
     final itemise = showDiscount(b, enabled: discountEnabled);
     return [
       '$emoji *ARENABOOK GROUND RECEIPT*',
       '---------------------------------------',
       '*Ref ID:* #${b.id}',
       '*Customer:* ${b.customerName}',
-      '*Court:* ${b.court.name}',
+      '*Court:* ${b.resource.name}',
       '*Date:* ${ArenaFormat.longDate(b.date)}',
       '*Slots:* ${b.slotsLabel}',
       '',
@@ -47,11 +47,11 @@ class InvoiceText {
     final discount = showDiscount(b, enabled: discountEnabled) ? ' (after ${m(b.discount)} discount)' : '';
     return 'ARENABOOK INVOICE #${b.id} (${statusLabel(b)})\n'
         'Customer: ${b.customerName} (${b.phone})\n'
-        'Court: ${b.court.name}\n'
+        'Court: ${b.resource.name}\n'
         'Date: ${ArenaFormat.longDate(b.date)} (${b.slotsLabel})\n'
         'Total: ${m(b.payable)}$discount | Paid: ${m(b.amountCollected)} | Due: ${m(b.balanceDue)}';
   }
 
   /// QR payload: enough to look the booking up at the gate.
-  static String qrData(Booking b) => 'ARENABOOK|${b.id}|${dateKey(b.date)}|${b.courtId}|${b.slots.map((s) => '${s.startMinute}-${s.endMinute}').join(',')}';
+  static String qrData(Booking b) => 'ARENABOOK|${b.id}|${dateKey(b.date)}|${b.resourceId}|${b.slots.map((s) => '${s.startMinute}-${s.endMinute}').join(',')}';
 }

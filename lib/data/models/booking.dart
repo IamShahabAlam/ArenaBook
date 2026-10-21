@@ -1,4 +1,4 @@
-import 'sport.dart';
+import 'resource.dart';
 import 'time_range.dart';
 
 enum BookingStatus { paid, pending, cancelled }
@@ -14,8 +14,8 @@ class Booking {
     required this.phone,
     this.email = '',
     this.notes = '',
-    required this.sport,
-    required this.courtId,
+    required this.resourceType,
+    required this.resourceId,
     required this.date,
     required this.slots,
     required this.hourlyRate,
@@ -38,8 +38,8 @@ class Booking {
   final String phone; // digits only, max 11
   final String email; // '' when not given
   final String notes; // max 120 chars
-  final Sport sport;
-  final String courtId; // see Court.all
+  final ResourceType resourceType;
+  final String resourceId; // see Resource.byId
   final DateTime date; // local calendar day (time part is always 00:00)
   final List<TimeRange> slots; // sorted, non-overlapping
   final int hourlyRate; // rate agreed at booking time; later rate changes don't alter this booking
@@ -62,7 +62,7 @@ class Booking {
 
   bool get isSettled => balanceSettledAt != null || advancePaid >= payable;
 
-  Court get court => Court.byId(courtId);
+  Resource get resource => Resource.byId(resourceId);
 
   int get totalMinutes => slots.fold(0, (sum, s) => sum + s.durationMinutes);
 
@@ -104,8 +104,8 @@ class Booking {
     String? phone,
     String? email,
     String? notes,
-    Sport? sport,
-    String? courtId,
+    ResourceType? resourceType,
+    String? resourceId,
     DateTime? date,
     List<TimeRange>? slots,
     int? hourlyRate,
@@ -125,8 +125,8 @@ class Booking {
       phone: phone ?? this.phone,
       email: email ?? this.email,
       notes: notes ?? this.notes,
-      sport: sport ?? this.sport,
-      courtId: courtId ?? this.courtId,
+      resourceType: resourceType ?? this.resourceType,
+      resourceId: resourceId ?? this.resourceId,
       date: date ?? this.date,
       slots: slots ?? this.slots,
       hourlyRate: hourlyRate ?? this.hourlyRate,
@@ -151,8 +151,8 @@ class Booking {
     'phone': phone,
     'email': email,
     'notes': notes,
-    'sport': sport.id, // same value the old enum stored
-    'courtId': courtId,
+    'sport': resourceType.id, // legacy key names ('sport', 'courtId') kept, so stored bookings need no migration
+    'courtId': resourceId,
     'date': dateKey(date),
     'slots': slots.map((s) => s.toJson()).toList(),
     'hourlyRate': hourlyRate,
@@ -180,8 +180,8 @@ class Booking {
       phone: json['phone'] as String? ?? '',
       email: json['email'] as String? ?? '',
       notes: json['notes'] as String? ?? '',
-      sport: Sport.fromName(json['sport'] as String),
-      courtId: json['courtId'] as String,
+      resourceType: ResourceType.byId(json['sport'] as String),
+      resourceId: json['courtId'] as String,
       date: parseDateKey(json['date'] as String),
       slots: slots,
       hourlyRate: (json['hourlyRate'] as num).toInt(),

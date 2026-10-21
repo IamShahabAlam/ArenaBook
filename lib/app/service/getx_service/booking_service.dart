@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 
 import '../../../data/models/booking.dart';
-import '../../../data/models/sport.dart';
+import '../../../data/models/resource.dart';
 import '../../../data/models/time_range.dart';
 import '../../../data/repositories/booking/booking_repository.dart';
 import '../../../data/rules/booking_rules.dart';
@@ -13,8 +13,8 @@ class BookingDraft {
     required this.phone,
     this.email = '',
     this.notes = '',
-    required this.sport,
-    required this.courtId,
+    required this.resourceType,
+    required this.resourceId,
     required this.date,
     required this.slots,
     required this.hourlyRate,
@@ -26,8 +26,8 @@ class BookingDraft {
   final String phone;
   final String email;
   final String notes;
-  final Sport sport;
-  final String courtId;
+  final ResourceType resourceType;
+  final String resourceId;
   final DateTime date;
   final List<TimeRange> slots;
   final int hourlyRate;
@@ -89,8 +89,8 @@ class BookingService extends GetxService {
       phone: BookingRules.digitsOnly(draft.phone),
       email: draft.email.trim(),
       notes: draft.notes.trim(),
-      sport: draft.sport,
-      courtId: draft.courtId,
+      resourceType: draft.resourceType,
+      resourceId: draft.resourceId,
       date: dateOnly(draft.date),
       slots: [...draft.slots]..sort(),
       hourlyRate: draft.hourlyRate,
@@ -117,8 +117,8 @@ class BookingService extends GetxService {
       phone: BookingRules.digitsOnly(draft.phone),
       email: draft.email.trim(),
       notes: draft.notes.trim(),
-      sport: draft.sport,
-      courtId: draft.courtId,
+      resourceType: draft.resourceType,
+      resourceId: draft.resourceId,
       date: dateOnly(draft.date),
       slots: [...draft.slots]..sort(),
       hourlyRate: draft.hourlyRate,
@@ -152,9 +152,9 @@ class BookingService extends GetxService {
     return cancelled;
   }
 
-  /// Slots already taken on a court/day, ignoring [excludeBookingId] (the booking being edited).
-  List<TimeRange> occupied({required DateTime date, required String courtId, String? excludeBookingId}) =>
-      BookingRules.occupied(bookings, date: date, courtId: courtId, excludeBookingId: excludeBookingId);
+  /// Slots already taken on a resource/day, ignoring [excludeBookingId] (the booking being edited).
+  List<TimeRange> occupied({required DateTime date, required String resourceId, String? excludeBookingId}) =>
+      BookingRules.occupied(bookings, date: date, resourceId: resourceId, excludeBookingId: excludeBookingId);
 
   // ─────────────── internals ───────────────
 
@@ -170,7 +170,7 @@ class BookingService extends GetxService {
           draft.slots,
           date: draft.date,
           now: _clock(),
-          occupied: occupied(date: draft.date, courtId: draft.courtId, excludeBookingId: existing?.id),
+          occupied: occupied(date: draft.date, resourceId: draft.resourceId, excludeBookingId: existing?.id),
           // An edited booking may keep slots that already started today (e.g. fixing a phone number mid-game).
           keepPastSlots: existing != null && isSameDay(existing.date, draft.date) ? existing.slots.toSet() : const {},
         );
