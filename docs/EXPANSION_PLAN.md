@@ -6,6 +6,8 @@ time on a resource (courts, studios, rooms, halls, cars), without becoming sever
 Status: **agreed 2026-10-21**. Work happens phase by phase; each phase gets a short design note in chat before code.
 The database comes **after** the in-app phases (1–6) are finished.
 
+Progress: **Phases 1–3 done** (2026-10-22): neutral names, `Terms`, `BookingPolicy`, `PricingMode`, four profiles. Next: Phase 4.
+
 ---
 
 ## 1. Decisions
@@ -15,9 +17,10 @@ The database comes **after** the in-app phases (1–6) are finished.
 | D1 | **One build per client** (flavor), as today. The developer picks the client's business profile in `lib/app/config/clients/<id>.dart`; the owner never chooses a business type. | No setup wizard for now. |
 | D2 | Core names: `Sport` → **`ResourceType`**, `Court` → **`Resource`**. | Stored ids (`cricket`, `padel-a`) and JSON keys (`sport`, `courtId`) stay unchanged, so no data migration for the rename. |
 | D3 | **Capacity bookings** (pools, classes: N places per time) only if no drastic change is needed. | Assessed below as contained: Phase 5, with a go/no-go after its design note. |
-| D4 | **No instalments.** A booking is paid as an advance plus the balance in one go. | The payment model stays `advancePaid` + Mark Paid. Overruns are handled by editing the booking (see §5). |
+| D4 | **No instalments.** A booking is paid as an advance plus the balance in one go. | The payment model stays `advancePaid` + Mark Paid. Overruns: edit the amount received and note the reason; past time is never edited (§5). |
 | D5 | **Future: self-service.** After the trial, a paying client may configure their own business. | Everything a profile and catalogue hold must be expressible as plain data later (no logic in config). |
 | D6 | **Database after the app work.** | The app keeps the repository pattern so the backend is one more implementation (§4). |
+| D7 | **Pricing per client: hourly or a typed price** (2026-10-22). | Manual = a required price field per booking; no session/package price tables. |
 
 ## 2. The pattern: core + business profile + client
 
@@ -46,15 +49,17 @@ Override order: **core default → profile → client config → owner's saved S
 **Never branch on the business type or client id** (`if (profile == eventVenue)`). Ask what the business needs (a value,
 a behaviour or a flag) and add that instead.
 
-### Profiles planned
+### Profiles (in `business/profiles.dart`)
 
 | Profile | Resource term | Policy | Pricing | Features |
 |---|---|---|---|---|
 | `sportsVenue` (demo, today) | Court / Sport / Player | 30 min step, any hour | hourly | discount, QR pass |
-| `studio` | Studio / Room | 60 min step, opening hours, min 1 h | hourly, half/full-day package | discount |
-| `meetingRoom` | Room | 30–60 min step, opening hours | hourly | discount |
-| `eventVenue` | Hall / Venue | named sessions (Lunch, Dinner, Full day) | fixed per session | discount |
-| `vehicleRental` | Car / Vehicle | 60 min step, any hour, may run past midnight | hourly | discount |
+| `spaceRental` | Space / Property / Customer (guest rooms, workspaces, studios, shops) | 60 min step, 24 h, min 1 h, 2 h default, "Full day" shortcut | hourly | discount |
+| `eventVenue` | Hall / Venue / Client | sessions: Lunch 12–6PM, Dinner 7PM–12AM, Full Day 10AM–11PM | manual (typed price) | discount |
+| `vehicleRental` | Vehicle / Customer | 60 min step, any hour, may run past midnight | hourly | discount |
+
+Studio and meeting room were merged into `spaceRental` on 2026-10-22. A client with fixed opening hours sets its own
+`ClientConfig.policy`; a client that prices by hand sets `ClientConfig.pricing: PricingMode.manual`.
 
 Profiles are `const` Dart objects for now. Because of D5 they must hold **only data** (strings, numbers, enums, ids),
 so they can later be stored and edited. Icons are the one exception today (`IconData`); in Phase 6 they move to an icon key.
@@ -63,7 +68,7 @@ so they can later be stored and edited. Icons are the one exception today (`Icon
 
 ```
 lib/app/config/business/        business_profile.dart (BusinessProfile, Terms, BookingPolicy, Features)
-                                profiles.dart (sportsVenue, studio, ...)
+                                profiles.dart (sportsVenue, spaceRental, eventVenue, vehicleRental)
 lib/app/config/clients/         ClientConfig + one file per client (profile + resource types)
 lib/data/models/                resource.dart (ResourceType, Resource), booking.dart, time_range.dart, pricing.dart
 lib/data/rules/                 BookingRules (reads BookingPolicy), BookingStats, InvoiceText (reads Terms)
@@ -91,12 +96,12 @@ pushes and pulls. `BookingService` and the screens don't change.
 
 A booking has a payable amount (`totalFee − discount`), an advance, and a one-step settlement (Mark Paid). Nothing else.
 
-**Overrun example (car rental):** booked 10:00–12:00 for 6,000, advance 3,000. The car comes back at 14:00. The owner
-edits the booking to 10:00–14:00: the fee becomes 12,000, a discount can be given in the same edit, Balance Due updates,
-and Mark Paid settles it. This already works for future bookings, but two rules must change first (Phase 2):
+**Overruns (decided 2026-10-21):** past time is never edited. When a customer overruns (e.g. a car returned late), the owner
+edits the amount received and writes the reason for the extra charge in the booking's notes. Kept simple on purpose.
 
-1. An edit may move the **end** of a booking that has already started (today `keepPastSlots` only accepts the exact same slots).
-2. An edit is allowed for a booking that started yesterday and ran past midnight (today `canEdit` blocks any earlier date).
+Known limit: the amount received is capped at the booking's fee (`clampAdvance`). With **manual pricing** the owner can raise
+the typed price in the same edit, so the extra charge is recorded and counted. With **hourly pricing** extra money above the fee
+still can't be recorded; if owners need it, an optional "extra charge" amount can be added later (no instalments, no time edits).
 
 ## 6. Phases
 
@@ -105,8 +110,8 @@ Each phase leaves the demo client working exactly as before unless stated, with 
 | Phase | Goal | Main changes | Data migration | Done when |
 |---|---|---|---|---|
 | **1. Neutral core** | No sports words in the core | 1a: rename `Sport`/`Court` and related names. 1b: `BusinessProfile` with `Terms`; every UI and invoice string with an industry word reads `Terms`; `sportsVenue` reproduces today's text | none | Existing widget tests pass without text edits; a test profile with "Studio" terms shows no court, ground, sport or player |
-| **2. Booking policy** | Configurable time | `BookingPolicy`: step (15/30/60), min/max duration, opening hours, named sessions; slot picker grid built from it; the two overrun edit rules (§5) | none | Rule tests for each step, opening hours, sessions and overrun edits |
-| **3. Pricing** | More than hourly | `Pricing` sealed class (hourly, fixed session/package), optional price per resource; booking stores a frozen price snapshot | schema v3: v2 `hourlyRate` → hourly snapshot | A stored v2 sample loads with identical totals |
+| **2. Booking policy** | Configurable time | `BookingPolicy`: step (15/30/60), min/max duration, opening hours, named sessions; slot picker built from it (closed hours hidden, session cards); client override `ClientConfig.policy` | none | Rule, service and form tests for steps, hours, past-midnight hours and sessions |
+| **3. Pricing** (done 2026-10-22) | More than hourly | `PricingMode`: `hourly` or `manual` (the owner types a required price per booking); profile default + `ClientConfig.pricing`; each booking stores its mode. Later, only if asked: price per resource, extra charge | schema v3: missing `pricing` = hourly | A stored v2 sample loads with identical totals; typed price saved as the fee |
 | **4. Features and receipts** | Optional parts | `Features` (discount moves here, QR entry pass); receipt title and footer from the profile | none | Invoice tests with QR on and off |
 | ✓ Checkpoint | Serve sports, studios, rooms, cars | Add a second real client with another profile | | Both clients pass tests and build |
 | **5. Capacity** (go/no-go) | Pools, classes | `Resource.capacity` (default 1), `Booking.places` (default 1); a time is full when booked places reach capacity; price × places | schema v4: missing `places` = 1 | With capacity 1 every existing test still passes |
@@ -125,8 +130,8 @@ Default capacity 1 keeps today's behaviour exactly. Final go/no-go comes with th
 ### Market gaps after each phase
 
 - **Sports and recreation:** Phase 1 (+ Phase 5 for pools and group sessions).
-- **Studios, meeting rooms, car rental:** Phases 1–3 (+ Phase 2 overrun edits for cars).
-- **Event venues:** Phases 1–4 (sessions with a fixed price). The date picker already allows two years ahead.
+- **Space rental (rooms, workspaces, studios, shops) and car rental:** served after Phases 1–3 (done).
+- **Event venues:** served after Phases 1–3 (sessions + typed price, done). The date picker already allows two years ahead.
 
 ## 7. Workflow for every phase
 

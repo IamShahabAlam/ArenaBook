@@ -181,9 +181,9 @@ void main() {
     });
 
     test('day parts cover the whole day in 30-minute starts', () {
-      expect(DayPart.values.expand((p) => p.starts).length, 48);
-      expect(DayPart.evening.starts.first, 18 * 60);
-      expect(DayPart.evening.starts.last, 23 * 60 + 30);
+      expect(DayPart.values.expand((p) => p.starts(30)).length, 48);
+      expect(DayPart.evening.starts(30).first, 18 * 60);
+      expect(DayPart.evening.starts(30).last, 23 * 60 + 30);
       expect(DayPart.of(0), DayPart.night);
       expect(DayPart.of(5 * 60 + 59), DayPart.night);
       expect(DayPart.of(6 * 60), DayPart.morning);

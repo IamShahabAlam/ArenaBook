@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../app/config/app_client_config.dart';
 import '../../../app/config/arena_theme.dart';
 import '../../../app/service/getx_service/booking_service.dart';
 import '../../../app/utils/formatters/arena_format.dart';
@@ -35,7 +36,7 @@ class PendingView extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'UNSETTLED GROUND FEES',
+                        'UNSETTLED ${AppClientConfig.terms.fee.toUpperCase()}S',
                         style: context.text.labelSmall?.copyWith(color: c.warningText, fontWeight: FontWeight.w800, letterSpacing: 0.6),
                       ),
                       const SizedBox(height: 4),

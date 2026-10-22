@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../../data/models/resource.dart';
+import '../business/profiles.dart';
 import 'client_config.dart';
 
 /// Demo arena: indoor cricket and padel, Pakistan.
 const demo = ClientConfig(
   id: 'demo',
+  profile: sportsVenue,
   resourceTypes: [
     ResourceType(
       id: 'cricket',

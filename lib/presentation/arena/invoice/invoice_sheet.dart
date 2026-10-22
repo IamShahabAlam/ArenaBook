@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../app/config/app_client_config.dart';
 import '../../../app/config/app_strings.dart';
 import '../../../app/config/arena_theme.dart';
 import '../../../app/service/getx_service/booking_service.dart';
@@ -14,6 +15,7 @@ import '../../../app/service/service_handler.dart/settings_store.dart';
 import '../../../app/utils/custom_functions/arena_toast.dart';
 import '../../../app/utils/formatters/arena_format.dart';
 import '../../../data/models/booking.dart';
+import '../../../data/models/pricing.dart';
 import '../../../data/rules/invoice_text.dart';
 import '../shell/booking_actions.dart';
 import '../widgets/arena_widgets.dart';
@@ -133,7 +135,7 @@ class _InvoiceSheetState extends State<InvoiceSheet> {
                           ),
                           const SizedBox(height: 6),
                           Text('#${b.id}', style: context.text.headlineSmall),
-                          Text('ARENABOOK · Official Ground Booking Receipt', style: context.text.bodySmall),
+                          Text('ARENABOOK · Official ${AppClientConfig.terms.booking} Receipt', style: context.text.bodySmall),
                           const SizedBox(height: 14),
                           _ReceiptBody(booking: b),
                         ],
@@ -257,16 +259,22 @@ class _ReceiptBody extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Divider(color: c.border),
           ),
-          line('Ground/Court:', b.resource.name, color: b.resourceType.text(c)),
+          line('${AppClientConfig.terms.resource}:', b.resource.name, color: b.resourceType.text(c)),
           line('Time Slot(s):', b.slotsLabel),
-          line('Duration:', '${ArenaFormat.hours(b.totalMinutes)} @ ${ArenaFormat.money(b.hourlyRate)}/hr'),
+          // A typed price has no rate behind it, so only the length is shown.
+          line(
+            'Duration:',
+            b.pricing == PricingMode.hourly
+                ? '${ArenaFormat.hours(b.totalMinutes)} @ ${ArenaFormat.money(b.hourlyRate)}/hr'
+                : ArenaFormat.hours(b.totalMinutes),
+          ),
           if (b.notes.isNotEmpty) line('Notes:', b.notes),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Divider(color: c.border),
           ),
           if (InvoiceText.showDiscount(b)) ...[
-            line('Ground Fee:', ArenaFormat.money(b.totalFee)),
+            line('${AppClientConfig.terms.fee}:', ArenaFormat.money(b.totalFee)),
             line('Discount:', '-${ArenaFormat.money(b.discount)}', color: c.limeText),
           ],
           line('Total Fee:', ArenaFormat.money(b.payable)),
@@ -274,7 +282,7 @@ class _ReceiptBody extends StatelessWidget {
           if (b.balanceSettledAt != null && !b.isCancelled)
             line('Balance Paid (${ArenaFormat.longDate(b.balanceSettledAt!)}):', ArenaFormat.money(b.payable - b.advancePaid), color: c.cricketText),
           if (b.isCancelled) ...[
-            line('Advance:', b.advanceReturned ? 'Returned to player' : 'Kept (non-refundable)', color: c.dangerText),
+            line('Advance:', b.advanceReturned ? 'Returned to ${AppClientConfig.terms.customer.toLowerCase()}' : 'Kept (non-refundable)', color: c.dangerText),
             line('Reason:', b.cancelReason, color: c.dangerText),
           ],
           const SizedBox(height: 4),
@@ -290,7 +298,7 @@ class _ReceiptBody extends StatelessWidget {
                   children: [
                     Text('VERIFIED ARENABOOK PASS', style: context.text.labelSmall?.copyWith(color: c.textMuted, letterSpacing: 0.6)),
                     Text(
-                      'Show at arena entry',
+                      AppClientConfig.terms.passHint,
                       style: context.text.labelSmall?.copyWith(color: c.textMuted, fontWeight: FontWeight.w500),
                     ),
                   ],

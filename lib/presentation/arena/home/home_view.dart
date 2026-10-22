@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../app/config/app_client_config.dart';
 import '../../../app/config/arena_theme.dart';
 import '../../../app/utils/formatters/arena_format.dart';
 import '../../../data/models/resource.dart';
@@ -88,7 +89,7 @@ class HomeView extends GetView<HomeController> {
                       children: [
                         Icon(Icons.bolt_rounded, size: 17, color: c.limeText),
                         const SizedBox(width: 4),
-                        Flexible(child: Text('Direct Ground Booking', style: context.text.titleSmall)),
+                        Flexible(child: Text('Direct ${AppClientConfig.terms.booking}', style: context.text.titleSmall)),
                       ],
                     ),
                     const SizedBox(height: 3),

@@ -42,7 +42,7 @@ before a build, so the native app and the Dart config can never disagree.
 
 | What | Where |
 |---|---|
-| Resource types (sports) and resources (courts), default rates, currency, WhatsApp country code, discount on/off | `lib/app/config/clients/<client>.dart` |
+| Business profile (wording, time rules, pricing), resource types (sports) and resources (courts), default rates, currency, WhatsApp country code, discount on/off | `lib/app/config/clients/<client>.dart` |
 | Client's own images | `assets/clients/<client>/` (see below) |
 | Client's launcher icon (optional) | `android/app/src/<client>/res/`, `ios/Runner/Assets.xcassets/AppIcon-<client>.appiconset` |
 | Trial switch URL (one Gist for all clients) | `lib/app/config/app_client_config.dart` → `accessConfigUrl` |

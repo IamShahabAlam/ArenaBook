@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/config/app_client_config.dart';
 import '../../../app/config/arena_theme.dart';
 import '../../../data/models/resource.dart';
 import 'arena_widgets.dart';
@@ -36,7 +37,7 @@ class ResourceTypeFilter extends StatelessWidget {
         onChanged: onChanged,
         dense: !withAvatars,
         options: [
-          SegmentOption(null, 'All Courts', leading: avatar(Icons.grid_view_rounded, c.cricketOnAvatar)),
+          SegmentOption(null, 'All ${AppClientConfig.terms.resources}', leading: avatar(Icons.grid_view_rounded, c.cricketOnAvatar)),
           for (final s in resourceTypes) SegmentOption(s, long ? s.label : s.shortLabel, leading: avatar(s.symbol, s.onAvatar(c))),
         ],
       ),

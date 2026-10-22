@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../app/config/app_client_config.dart';
 import '../../../app/config/arena_theme.dart';
 import '../../../app/service/getx_service/app_access_service.dart';
 import 'arena_dialog.dart';
@@ -12,7 +13,7 @@ class TrialExpiredDialog extends StatelessWidget {
   const TrialExpiredDialog({super.key});
 
   static const message = 'Your trial has expired; please contact the developer.';
-  static const notActivatedMessage = 'This app is not activated for your arena; please contact the developer.';
+  static String get notActivatedMessage => 'This app is not activated for your ${AppClientConfig.terms.place}; please contact the developer.';
 
   @override
   Widget build(BuildContext context) {

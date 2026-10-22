@@ -21,16 +21,17 @@ class InvoiceText {
     String m(int v) => ArenaFormat.money(v, symbol: currency);
     final emoji = b.resourceType.emoji;
     final itemise = showDiscount(b, enabled: discountEnabled);
+    final terms = AppClientConfig.terms;
     return [
-      '$emoji *ARENABOOK GROUND RECEIPT*',
+      '$emoji *ARENABOOK ${terms.subject.toUpperCase()} RECEIPT*',
       '---------------------------------------',
       '*Ref ID:* #${b.id}',
       '*Customer:* ${b.customerName}',
-      '*Court:* ${b.resource.name}',
+      '*${terms.resource}:* ${b.resource.name}',
       '*Date:* ${ArenaFormat.longDate(b.date)}',
       '*Slots:* ${b.slotsLabel}',
       '',
-      if (itemise) ...['*Ground Fee:* ${m(b.totalFee)}', '*Discount:* -${m(b.discount)}'],
+      if (itemise) ...['*${terms.fee}:* ${m(b.totalFee)}', '*Discount:* -${m(b.discount)}'],
       '*Total Fee:* ${m(b.payable)}',
       '*Advance Paid:* ${m(b.advancePaid)}',
       if (b.balanceSettledAt != null && !b.isCancelled) '*Balance Paid:* ${m(b.payable - b.advancePaid)}',
@@ -38,7 +39,7 @@ class InvoiceText {
       '*Status:* ${statusLabel(b)}',
       if (b.isCancelled) '*Cancellation:* ${b.cancelReason} (advance ${b.advanceReturned ? 'returned' : 'not refunded'})',
       '',
-      b.isCancelled ? 'This booking has been cancelled.' : 'Thank you for playing at ArenaBook grounds! Present this receipt at entry.',
+      b.isCancelled ? 'This booking has been cancelled.' : terms.receiptThanks,
     ].join('\n');
   }
 
@@ -47,7 +48,7 @@ class InvoiceText {
     final discount = showDiscount(b, enabled: discountEnabled) ? ' (after ${m(b.discount)} discount)' : '';
     return 'ARENABOOK INVOICE #${b.id} (${statusLabel(b)})\n'
         'Customer: ${b.customerName} (${b.phone})\n'
-        'Court: ${b.resource.name}\n'
+        '${AppClientConfig.terms.resource}: ${b.resource.name}\n'
         'Date: ${ArenaFormat.longDate(b.date)} (${b.slotsLabel})\n'
         'Total: ${m(b.payable)}$discount | Paid: ${m(b.amountCollected)} | Due: ${m(b.balanceDue)}';
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../../app/config/app_client_config.dart';
 import '../../../app/config/arena_theme.dart';
 import '../../../app/service/getx_service/booking_service.dart';
 import '../../../app/service/service_handler.dart/settings_store.dart';
@@ -76,7 +77,12 @@ class _FormHeader extends GetView<BookingFormController> {
               children: [
                 Text(editing ? 'Edit Booking (#${controller.editingId.value})' : 'Create New Booking', style: context.text.titleLarge),
                 const SizedBox(height: 2),
-                Text(editing ? 'Modify timing, details or payments' : 'Select sport, timing, customer details & advance', style: context.text.bodySmall),
+                Text(
+                  editing
+                      ? 'Modify timing, details or payments'
+                      : 'Select ${AppClientConfig.terms.resourceType.toLowerCase()}, timing, customer details & advance',
+                  style: context.text.bodySmall,
+                ),
               ],
             ),
           ),
@@ -132,8 +138,10 @@ class _ResourceTypePicker extends GetView<BookingFormController> {
                 fit: BoxFit.scaleDown,
                 child: Text(s.label, style: context.text.titleSmall?.copyWith(color: s == selected ? c.textPrimary : c.textSecondary)),
               ),
-              const SizedBox(height: 2),
-              Text('${ArenaFormat.money(settings.rateFor(s))} / Hr', style: context.text.labelSmall),
+              if (!controller.isManualPrice) ...[
+                const SizedBox(height: 2),
+                Text('${ArenaFormat.money(settings.rateFor(s))} / Hr', style: context.text.labelSmall),
+              ],
             ],
           ),
         ),
@@ -144,7 +152,7 @@ class _ResourceTypePicker extends GetView<BookingFormController> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const FieldLabel('Select Sport Category'),
+            FieldLabel('Select ${AppClientConfig.terms.resourceType} Category'),
             for (var i = 0; i < resourceTypes.length; i += _perRow) ...[
               if (i > 0) const SizedBox(height: 12),
               Row(
@@ -175,7 +183,7 @@ class _ResourcePicker extends GetView<BookingFormController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const FieldLabel('Select Court / Pitch'),
+        FieldLabel('Select ${AppClientConfig.terms.resource}'),
         Obx(() {
           final resources = Resource.forType(controller.resourceType.value);
           return DropdownButtonFormField<String>(
@@ -388,21 +396,42 @@ class _PaymentCard extends GetView<BookingFormController> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(child: Text('Total Ground Fee', style: context.text.bodySmall)),
-                // Feature off: show what's payable (an edited booking may keep an earlier discount).
-                AnimatedNumber(value: controller.discountEnabled ? total : controller.payable, format: ArenaFormat.money, style: context.text.titleLarge),
-              ],
-            ),
-            if (controller.totalMinutes > 0)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(
-                  '${ArenaFormat.hours(controller.totalMinutes)} × ${ArenaFormat.money(rate)}/hr',
-                  style: context.text.labelSmall?.copyWith(fontWeight: FontWeight.w500),
-                ),
+            if (controller.isManualPrice) ...[
+              // The owner sets the price of each booking; required, checked with the other fields on submit.
+              Text('Total ${AppClientConfig.terms.fee}', style: context.text.bodySmall),
+              const SizedBox(height: 4),
+              TextFormField(
+                key: const ValueKey('price-field'),
+                controller: controller.priceCtrl,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(8)],
+                onChanged: controller.onPriceChanged,
+                validator: (_) => controller.priceError,
+                style: context.text.titleMedium,
+                decoration: InputDecoration(prefixText: '${SettingsStore.to.currencySymbol.value} ', hintText: '0'),
               ),
+              if (controller.totalMinutes > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(ArenaFormat.hours(controller.totalMinutes), style: context.text.labelSmall?.copyWith(fontWeight: FontWeight.w500)),
+                ),
+            ] else ...[
+              Row(
+                children: [
+                  Expanded(child: Text('Total ${AppClientConfig.terms.fee}', style: context.text.bodySmall)),
+                  // Feature off: show what's payable (an edited booking may keep an earlier discount).
+                  AnimatedNumber(value: controller.discountEnabled ? total : controller.payable, format: ArenaFormat.money, style: context.text.titleLarge),
+                ],
+              ),
+              if (controller.totalMinutes > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    '${ArenaFormat.hours(controller.totalMinutes)} × ${ArenaFormat.money(rate)}/hr',
+                    style: context.text.labelSmall?.copyWith(fontWeight: FontWeight.w500),
+                  ),
+                ),
+            ],
             if (controller.discountEnabled) ...[
               const SizedBox(height: 12),
               Row(

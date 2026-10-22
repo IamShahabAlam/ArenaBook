@@ -2,17 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../../../app/config/app_client_config.dart';
 import '../../../../app/config/arena_theme.dart';
 import '../../../../app/service/getx_service/booking_service.dart';
 import '../../../../app/utils/formatters/arena_format.dart';
 import '../../../../data/models/booking.dart';
+import '../../../../data/models/booking_policy.dart';
 import '../../../../data/models/time_range.dart';
 import '../../../../data/rules/booking_rules.dart';
 import '../../widgets/arena_widgets.dart';
 import '../booking_form_controller.dart';
 
-/// Pick a start (30-min steps, any time of day) + a duration. Compact: a day bar with every booking,
-/// four 6-hour tabs, the tab's 12 start times, and a duration stepper.
+/// Pick a time under the client's [BookingPolicy]: a day bar with every booking, then either fixed sessions,
+/// or 6-hour tabs (closed ones hidden) with their start times and a duration stepper.
 class SlotPicker extends GetView<BookingFormController> {
   const SlotPicker({super.key});
 
@@ -24,8 +26,11 @@ class SlotPicker extends GetView<BookingFormController> {
       controller.date.value;
       controller.resourceId.value;
       BookingService.to.bookings.length;
+      final policy = controller.policy;
       final chosen = controller.chosenSlots.firstOrNull;
       final error = controller.timeError;
+      final parts = controller.visibleParts;
+      final part = parts.contains(controller.period.value) ? controller.period.value : parts.firstOrNull;
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,13 +50,23 @@ class SlotPicker extends GetView<BookingFormController> {
             ],
           ),
           const SizedBox(height: 10),
-          _DayBar(occupied: controller.occupied, chosen: chosen, date: controller.date.value, onTapMinute: (m) => controller.selectPeriod(DayPart.of(m))),
+          _DayBar(
+            occupied: controller.occupied,
+            closed: policy.closedToday,
+            chosen: chosen,
+            date: controller.date.value,
+            onTapMinute: (m) => controller.selectPeriod(DayPart.of(m)),
+          ),
           const SizedBox(height: 12),
-          _PartTabs(selected: controller.period.value, onChanged: controller.selectPeriod),
-          const SizedBox(height: 10),
-          _StartGrid(part: controller.period.value),
-          const SizedBox(height: 12),
-          _DurationStepper(enabled: chosen != null),
+          if (policy.usesSessions)
+            _SessionList(sessions: policy.sessions)
+          else if (part != null) ...[
+            _PartTabs(parts: parts, selected: part, onChanged: controller.selectPeriod),
+            const SizedBox(height: 10),
+            _StartGrid(part: part),
+            const SizedBox(height: 12),
+            _DurationStepper(enabled: chosen != null),
+          ],
           if (error != null) ...[const SizedBox(height: 8), Text(error, style: context.text.labelMedium?.copyWith(color: c.dangerText))],
         ],
       );
@@ -65,11 +80,12 @@ String _clock(int minute) {
   return '$h:${(minute % 60).toString().padLeft(2, '0')}';
 }
 
-/// The whole day at a glance: booked (red), already passed today (grey), your selection (green).
+/// The whole day at a glance: booked (red), already passed today or closed (grey), your selection (green).
 class _DayBar extends StatelessWidget {
-  const _DayBar({required this.occupied, required this.chosen, required this.date, required this.onTapMinute});
+  const _DayBar({required this.occupied, required this.closed, required this.chosen, required this.date, required this.onTapMinute});
 
   final List<TimeRange> occupied;
+  final List<TimeRange> closed;
   final TimeRange? chosen;
   final DateTime date;
   final ValueChanged<int> onTapMinute;
@@ -80,7 +96,7 @@ class _DayBar extends StatelessWidget {
     final now = BookingService.to.now();
     final pastUntil = isSameDay(date, now) ? now.hour * 60 + now.minute : 0;
     return Semantics(
-      label: '${occupied.length} bookings on this court today',
+      label: '${occupied.length} bookings on this ${AppClientConfig.terms.resource.toLowerCase()} today',
       child: LayoutBuilder(
         builder: (context, box) => GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -89,7 +105,7 @@ class _DayBar extends StatelessWidget {
             children: [
               CustomPaint(
                 size: Size(box.maxWidth, 14),
-                painter: _DayBarPainter(occupied: occupied, chosen: chosen, pastUntil: pastUntil, c: c),
+                painter: _DayBarPainter(occupied: occupied, closed: closed, chosen: chosen, pastUntil: pastUntil, c: c),
               ),
               const SizedBox(height: 4),
               Row(
@@ -108,9 +124,10 @@ class _DayBar extends StatelessWidget {
 }
 
 class _DayBarPainter extends CustomPainter {
-  _DayBarPainter({required this.occupied, required this.chosen, required this.pastUntil, required this.c});
+  _DayBarPainter({required this.occupied, required this.closed, required this.chosen, required this.pastUntil, required this.c});
 
   final List<TimeRange> occupied;
+  final List<TimeRange> closed;
   final TimeRange? chosen;
   final int pastUntil;
   final ArenaColors c;
@@ -126,6 +143,9 @@ class _DayBarPainter extends CustomPainter {
     void band(int from, int to, Color color) => canvas.drawRect(Rect.fromLTRB(x(from), 0, x(to), size.height), Paint()..color = color);
 
     if (pastUntil > 0) band(0, pastUntil, c.textMuted.withValues(alpha: 0.25));
+    for (final r in closed) {
+      band(r.startMinute, r.endMinute, c.textMuted.withValues(alpha: 0.25));
+    }
     for (final o in occupied) {
       band(o.startMinute, o.endMinute, c.danger.withValues(alpha: 0.8));
     }
@@ -150,13 +170,15 @@ class _DayBarPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_DayBarPainter old) => old.occupied != occupied || old.chosen != chosen || old.pastUntil != pastUntil || old.c != c;
+  bool shouldRepaint(_DayBarPainter old) =>
+      old.occupied != occupied || old.closed != closed || old.chosen != chosen || old.pastUntil != pastUntil || old.c != c;
 }
 
-/// Night · Morning · Afternoon · Evening, each with its hours underneath.
+/// Night · Morning · Afternoon · Evening (the open ones), each with its hours underneath.
 class _PartTabs extends StatelessWidget {
-  const _PartTabs({required this.selected, required this.onChanged});
+  const _PartTabs({required this.parts, required this.selected, required this.onChanged});
 
+  final List<DayPart> parts;
   final DayPart selected;
   final ValueChanged<DayPart> onChanged;
 
@@ -167,8 +189,8 @@ class _PartTabs extends StatelessWidget {
     final c = context.arena;
     return Row(
       children: [
-        for (final p in DayPart.values) ...[
-          if (p != DayPart.values.first) const SizedBox(width: 6),
+        for (final p in parts) ...[
+          if (p != parts.first) const SizedBox(width: 6),
           Expanded(
             child: Semantics(
               button: true,
@@ -204,7 +226,7 @@ class _PartTabs extends StatelessWidget {
   }
 }
 
-/// The part's 12 start times. Booked = struck through, past = dimmed, chosen range = green.
+/// The part's start times inside opening hours. Booked = struck through, past = dimmed, chosen range = green.
 class _StartGrid extends GetView<BookingFormController> {
   const _StartGrid({required this.part});
 
@@ -223,7 +245,7 @@ class _StartGrid extends GetView<BookingFormController> {
       crossAxisSpacing: 6,
       childAspectRatio: 2.4,
       children: [
-        for (final start in part.starts)
+        for (final start in controller.startsIn(part))
           Builder(
             builder: (context) {
               final state = controller.cellState(start);
@@ -281,23 +303,19 @@ class _StartGrid extends GetView<BookingFormController> {
   }
 }
 
-/// Duration − / + in 30-minute steps, never past the next booking.
+/// Duration − / + in policy steps, from the policy's minimum to the next booking or closing time.
 class _DurationStepper extends GetView<BookingFormController> {
   const _DurationStepper({required this.enabled});
 
   final bool enabled;
 
-  String _label(int minutes) {
-    final h = minutes ~/ 60, m = minutes % 60;
-    return [if (h > 0) '$h h', if (m > 0) '$m m'].join(' ');
-  }
-
   @override
   Widget build(BuildContext context) {
     final c = context.arena;
+    final policy = controller.policy;
     final d = controller.duration.value;
     final max = controller.maxDuration;
-    return Row(
+    final stepper = Row(
       children: [
         Expanded(
           child: Text('Duration', style: context.text.labelMedium?.copyWith(color: c.textSecondary)),
@@ -305,21 +323,136 @@ class _DurationStepper extends GetView<BookingFormController> {
         SoftButton(
           icon: Icons.remove_rounded,
           tooltip: 'Shorter',
-          onPressed: enabled && d > BookingRules.slotStep ? () => controller.changeDuration(-1) : null,
+          onPressed: enabled && d - policy.step >= policy.minDuration ? () => controller.changeDuration(-1) : null,
         ),
         SizedBox(
           width: 86,
           child: Text(
-            _label(d),
+            BookingRules.durationLabel(d),
             textAlign: TextAlign.center,
             style: context.text.titleSmall?.copyWith(color: enabled ? c.textPrimary : c.textMuted),
           ),
         ),
-        SoftButton(
-          icon: Icons.add_rounded,
-          tooltip: 'Longer',
-          onPressed: enabled && d + BookingRules.slotStep <= max ? () => controller.changeDuration(1) : null,
+        SoftButton(icon: Icons.add_rounded, tooltip: 'Longer', onPressed: enabled && d + policy.step <= max ? () => controller.changeDuration(1) : null),
+      ],
+    );
+    if (!policy.offersFullDay) return stepper;
+
+    // Shortcut to 24 hours from the chosen start; dimmed when another booking leaves less than a day.
+    final fullDay = enabled && controller.isFullDay;
+    final can = enabled && controller.canBookFullDay;
+    return Column(
+      children: [
+        stepper,
+        const SizedBox(height: 8),
+        Semantics(
+          button: true,
+          enabled: can,
+          selected: fullDay,
+          label: 'Full day, 24 hours',
+          excludeSemantics: true,
+          child: Opacity(
+            opacity: can || fullDay ? 1 : 0.5,
+            child: AnimatedTile(
+              color: fullDay ? c.cricket : c.surfaceMuted,
+              borderColor: fullDay ? c.cricket : c.border,
+              selected: fullDay,
+              radius: 10,
+              onTap: can && !fullDay
+                  ? () {
+                      HapticFeedback.selectionClick();
+                      controller.selectFullDay();
+                    }
+                  : null,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Center(
+                  child: Text(
+                    'Full day (24 h)',
+                    style: context.text.labelMedium?.copyWith(color: fullDay ? c.onAccent : c.textPrimary, fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
+      ],
+    );
+  }
+}
+
+/// Fixed sessions (e.g. Lunch, Dinner): one card each with its time. Booked = struck through, past = dimmed.
+class _SessionList extends GetView<BookingFormController> {
+  const _SessionList({required this.sessions});
+
+  final List<BookingSession> sessions;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.arena;
+    return Column(
+      children: [
+        for (final s in sessions) ...[
+          if (s != sessions.first) const SizedBox(height: 6),
+          Builder(
+            builder: (context) {
+              final state = controller.sessionState(s);
+              final (bg, fg, border) = switch (state) {
+                SlotState.selected => (c.cricket, c.onAccent, c.cricket),
+                SlotState.available => (c.surfaceMuted, c.textPrimary, c.border),
+                SlotState.booked => (c.danger.withValues(alpha: 0.08), c.dangerText, c.danger.withValues(alpha: 0.3)),
+                SlotState.past => (c.surfaceMuted.withValues(alpha: 0.5), c.textMuted, c.border.withValues(alpha: 0.5)),
+              };
+              final tappable = state == SlotState.available || state == SlotState.selected;
+              final tag = switch (state) {
+                SlotState.booked => 'Booked',
+                SlotState.past => 'Past',
+                SlotState.selected || SlotState.available => '',
+              };
+              final strike = state == SlotState.booked ? TextDecoration.lineThrough : null;
+              return Semantics(
+                button: true,
+                enabled: tappable,
+                selected: state == SlotState.selected,
+                label: '${s.label}, ${s.time.label}${tag.isEmpty ? '' : ', ${tag.toLowerCase()}'}',
+                excludeSemantics: true,
+                child: Opacity(
+                  opacity: state == SlotState.past ? 0.5 : 1,
+                  child: AnimatedTile(
+                    color: bg,
+                    borderColor: border,
+                    selected: state == SlotState.selected,
+                    radius: 10,
+                    onTap: tappable
+                        ? () {
+                            HapticFeedback.selectionClick();
+                            controller.selectSession(s);
+                          }
+                        : null,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              s.label,
+                              style: context.text.labelLarge?.copyWith(color: fg, fontWeight: FontWeight.w800, decoration: strike, decorationColor: fg),
+                            ),
+                          ),
+                          Text(
+                            s.time.label,
+                            style: context.text.labelMedium?.copyWith(color: fg, decoration: strike, decorationColor: fg),
+                          ),
+                          if (tag.isNotEmpty) ...[const SizedBox(width: 8), ArenaBadge(label: tag, color: fg)],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ],
     );
   }

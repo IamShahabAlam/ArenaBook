@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 
 import '../../../data/models/booking.dart';
+import '../../../data/models/pricing.dart';
 import '../../../data/models/resource.dart';
 import '../../../data/models/time_range.dart';
 import '../../../data/repositories/booking/booking_repository.dart';
@@ -17,7 +18,9 @@ class BookingDraft {
     required this.resourceId,
     required this.date,
     required this.slots,
-    required this.hourlyRate,
+    this.pricing = PricingMode.hourly,
+    this.hourlyRate = 0,
+    this.price = 0,
     this.discount = 0,
     required this.advancePaid,
   });
@@ -30,13 +33,21 @@ class BookingDraft {
   final String resourceId;
   final DateTime date;
   final List<TimeRange> slots;
-  final int hourlyRate;
+  final PricingMode pricing;
+  final int hourlyRate; // hourly pricing only
+  final int price; // manual pricing only: what the owner typed
   final int discount;
   final int advancePaid;
 
   int get totalMinutes => slots.fold(0, (sum, s) => sum + s.durationMinutes);
-  int get totalFee => Booking.feeFor(totalMinutes, hourlyRate);
+  int get totalFee => switch (pricing) {
+    PricingMode.hourly => Booking.feeFor(totalMinutes, hourlyRate),
+    PricingMode.manual => price,
+  };
   int get payable => totalFee - discount;
+
+  /// The rate saved on the booking: 0 for a manual price, so no "@ rate/hr" is ever shown for it.
+  int get savedRate => pricing == PricingMode.hourly ? hourlyRate : 0;
 }
 
 /// Thrown when a booking can't be saved; [message] is safe to show to the user.
@@ -93,7 +104,8 @@ class BookingService extends GetxService {
       resourceId: draft.resourceId,
       date: dateOnly(draft.date),
       slots: [...draft.slots]..sort(),
-      hourlyRate: draft.hourlyRate,
+      pricing: draft.pricing,
+      hourlyRate: draft.savedRate,
       totalFee: draft.totalFee,
       discount: draft.discount,
       advancePaid: BookingRules.clampAdvance(draft.advancePaid, draft.payable),
@@ -121,7 +133,8 @@ class BookingService extends GetxService {
       resourceId: draft.resourceId,
       date: dateOnly(draft.date),
       slots: [...draft.slots]..sort(),
-      hourlyRate: draft.hourlyRate,
+      pricing: draft.pricing,
+      hourlyRate: draft.savedRate,
       totalFee: draft.totalFee,
       discount: draft.discount,
       advancePaid: BookingRules.clampAdvance(draft.advancePaid, draft.payable),
@@ -164,7 +177,7 @@ class BookingService extends GetxService {
         BookingRules.validatePhone(draft.phone) ??
         BookingRules.validateEmail(draft.email) ??
         (draft.notes.trim().length > BookingRules.maxNotesLength ? 'Notes can be at most ${BookingRules.maxNotesLength} characters' : null) ??
-        (draft.hourlyRate <= 0 ? 'Hourly rate must be greater than 0' : null) ??
+        BookingRules.validatePrice(draft.pricing, hourlyRate: draft.hourlyRate, price: draft.price) ??
         BookingRules.validateDiscount(draft.discount, draft.totalFee) ??
         BookingRules.validateSlots(
           draft.slots,

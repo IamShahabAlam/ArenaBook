@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../app/config/app_client_config.dart';
 import '../../../app/config/app_strings.dart';
 import '../../../app/config/arena_theme.dart';
 import '../../../app/utils/custom_functions/arena_toast.dart';
@@ -93,7 +94,11 @@ class SupportDialog extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Need help with ground bookings or technical assistance?', style: context.text.bodySmall, textAlign: TextAlign.center),
+          Text(
+            'Need help with ${AppClientConfig.terms.bookings.toLowerCase()} or technical assistance?',
+            style: context.text.bodySmall,
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 14),
           const SupportContacts(),
         ],

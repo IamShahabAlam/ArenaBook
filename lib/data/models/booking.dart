@@ -1,3 +1,4 @@
+import 'pricing.dart';
 import 'resource.dart';
 import 'time_range.dart';
 
@@ -18,6 +19,7 @@ class Booking {
     required this.resourceId,
     required this.date,
     required this.slots,
+    this.pricing = PricingMode.hourly,
     required this.hourlyRate,
     required this.totalFee,
     this.discount = 0,
@@ -31,7 +33,7 @@ class Booking {
   });
 
   /// Bump when the stored shape changes, and handle old versions in [fromJson].
-  static const schemaVersion = 2; // v2: added discount (v1 records load with 0)
+  static const schemaVersion = 3; // v2: discount (v1 loads 0). v3: pricing (older loads hourly)
 
   final String id; // "TRF-1001", sequential so it is unique and readable
   final String customerName;
@@ -42,8 +44,9 @@ class Booking {
   final String resourceId; // see Resource.byId
   final DateTime date; // local calendar day (time part is always 00:00)
   final List<TimeRange> slots; // sorted, non-overlapping
-  final int hourlyRate; // rate agreed at booking time; later rate changes don't alter this booking
-  final int totalFee; // full slot price, before discount
+  final PricingMode pricing; // how totalFee was worked out
+  final int hourlyRate; // rate agreed at booking time (0 for manual pricing); later rate changes don't alter this booking
+  final int totalFee; // full price before discount: minutes × rate, or the price the owner typed
   final int discount; // rupees off, 0..totalFee
   final int advancePaid; // received when booking / last edit
   final DateTime? balanceSettledAt; // set by "Mark Paid": the remaining balance was received
@@ -108,6 +111,7 @@ class Booking {
     String? resourceId,
     DateTime? date,
     List<TimeRange>? slots,
+    PricingMode? pricing,
     int? hourlyRate,
     int? totalFee,
     int? discount,
@@ -129,6 +133,7 @@ class Booking {
       resourceId: resourceId ?? this.resourceId,
       date: date ?? this.date,
       slots: slots ?? this.slots,
+      pricing: pricing ?? this.pricing,
       hourlyRate: hourlyRate ?? this.hourlyRate,
       totalFee: totalFee ?? this.totalFee,
       discount: discount ?? this.discount,
@@ -155,6 +160,7 @@ class Booking {
     'courtId': resourceId,
     'date': dateKey(date),
     'slots': slots.map((s) => s.toJson()).toList(),
+    'pricing': pricing.name,
     'hourlyRate': hourlyRate,
     'totalFee': totalFee,
     'discount': discount,
@@ -184,6 +190,7 @@ class Booking {
       resourceId: json['courtId'] as String,
       date: parseDateKey(json['date'] as String),
       slots: slots,
+      pricing: PricingMode.fromName(json['pricing'] as String?), // absent before v3
       hourlyRate: (json['hourlyRate'] as num).toInt(),
       totalFee: (json['totalFee'] as num).toInt(),
       discount: (json['discount'] as num?)?.toInt() ?? 0, // absent in v1 records

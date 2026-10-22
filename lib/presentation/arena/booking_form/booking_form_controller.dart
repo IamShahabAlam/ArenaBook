@@ -7,6 +7,8 @@ import '../../../app/service/getx_service/booking_service.dart';
 import '../../../app/service/service_handler.dart/settings_store.dart';
 import '../../../app/utils/custom_functions/arena_toast.dart';
 import '../../../data/models/booking.dart';
+import '../../../data/models/booking_policy.dart';
+import '../../../data/models/pricing.dart';
 import '../../../data/models/resource.dart';
 import '../../../data/models/time_range.dart';
 import '../../../data/rules/booking_rules.dart';
@@ -26,8 +28,9 @@ class BookingFormController extends GetxController {
   // Always from the service clock (never DateTime.now()), so tests and the app agree on "today".
   late final date = dateOnly(_service.now()).obs;
   final startMinute = RxnInt(); // chosen start time, null = not picked yet
-  final duration = 60.obs; // minutes, in BookingRules.slotStep steps
+  late final duration = policy.defaultDuration.obs; // minutes, in policy steps
   late final period = _defaultPeriod(date.value).obs; // which 6-hour block of start times is shown
+  final price = 0.obs; // manual pricing: what the owner typed
   final advance = 0.obs;
   final discount = 0.obs;
   final notesLength = 0.obs;
@@ -38,6 +41,7 @@ class BookingFormController extends GetxController {
   final emailCtrl = TextEditingController();
   final notesCtrl = TextEditingController();
 
+  final priceCtrl = TextEditingController();
   final advanceCtrl = TextEditingController();
   final discountCtrl = TextEditingController();
   final formKey = GlobalKey<FormState>();
@@ -53,12 +57,12 @@ class BookingFormController extends GetxController {
     super.onInit();
     notesCtrl.addListener(() => notesLength.value = notesCtrl.text.length);
     // When the fee drops (fewer slots, rate change), cap the discount and advance to it.
-    everAll([startMinute, duration, resourceType, ..._settings.rateStreams], (_) => _capMoney());
+    everAll([startMinute, duration, resourceType, price, ..._settings.rateStreams], (_) => _capMoney());
   }
 
   @override
   void onClose() {
-    for (final c in [nameCtrl, phoneCtrl, emailCtrl, notesCtrl, advanceCtrl, discountCtrl]) {
+    for (final c in [nameCtrl, phoneCtrl, emailCtrl, notesCtrl, priceCtrl, advanceCtrl, discountCtrl]) {
       c.dispose();
     }
     scrollController.dispose();
@@ -66,6 +70,9 @@ class BookingFormController extends GetxController {
   }
 
   // ─────────────── Derived (read inside Obx) ───────────────
+
+  /// The client's time rules: steps, durations, opening hours or fixed sessions.
+  BookingPolicy get policy => AppClientConfig.policy;
 
   /// Resource types to choose from: the offered ones, plus an edited booking's type if it was switched off since.
   List<ResourceType> get formResourceTypes {
@@ -88,8 +95,16 @@ class BookingFormController extends GetxController {
     return range == null ? const [] : [range];
   }
 
+  /// An edited booking keeps the pricing it was made with; new ones follow the client's.
+  PricingMode get pricing => _original?.pricing ?? AppClientConfig.pricing;
+
+  bool get isManualPrice => pricing == PricingMode.manual;
+
   int get totalMinutes => chosenSlots.fold(0, (sum, s) => sum + s.durationMinutes);
-  int get totalFee => Booking.feeFor(totalMinutes, hourlyRate);
+  int get totalFee => isManualPrice ? price.value : Booking.feeFor(totalMinutes, hourlyRate);
+
+  /// Field error for the typed price (manual pricing only).
+  String? get priceError => isManualPrice ? BookingRules.validatePrice(pricing, hourlyRate: 0, price: price.value) : null;
 
   bool get discountEnabled => AppClientConfig.enableDiscount;
 
@@ -109,8 +124,21 @@ class BookingFormController extends GetxController {
     if (chosen != null && start >= chosen.startMinute && start < chosen.endMinute) return SlotState.selected;
     final state = BookingRules.cellState(start, date: date.value, now: _service.now(), occupied: occupied);
     // Editing: the booking's own time stays selectable even after it started.
-    final cell = TimeRange(start, start + BookingRules.slotStep);
+    final cell = TimeRange(start, start + policy.step);
     if (state == SlotState.past && _keepPast.any(cell.overlaps)) return SlotState.available;
+    return state;
+  }
+
+  /// Parts of the day with at least one start time inside opening hours (a studio open 9AM-11PM has no Night tab).
+  List<DayPart> get visibleParts => DayPart.values.where((p) => BookingRules.startsIn(p).isNotEmpty).toList();
+
+  List<int> startsIn(DayPart part) => BookingRules.startsIn(part);
+
+  /// Session card state: the chosen session = selected, else booked / past / free.
+  SlotState sessionState(BookingSession session) {
+    if (chosenSlots.firstOrNull == session.time) return SlotState.selected;
+    final state = BookingRules.sessionState(session, date: date.value, now: _service.now(), occupied: occupied);
+    if (state == SlotState.past && _keepPast.contains(session.time)) return SlotState.available;
     return state;
   }
 
@@ -120,15 +148,23 @@ class BookingFormController extends GetxController {
     return start == null ? 0 : BookingRules.maxDuration(start, occupied: occupied);
   }
 
+  /// "Full day" fits: the policy offers it and 24 hours are free from the chosen start.
+  bool get canBookFullDay => policy.offersFullDay && startMinute.value != null && maxDuration >= TimeRange.minutesPerDay;
+
+  bool get isFullDay => duration.value == TimeRange.minutesPerDay;
+
   /// Live problem with the chosen time (null = fine or nothing picked).
   String? get timeError => startMinute.value == null
       ? null
       : BookingRules.validateSlots(chosenSlots, date: date.value, now: _service.now(), occupied: occupied, keepPastSlots: _keepPast);
 
-  /// Today: the period we're in now. Other days: evening, the busiest time.
+  /// Today: the period we're in now. Other days: evening, the busiest time. A closed period moves to the next open one.
   DayPart _defaultPeriod(DateTime day) {
     final now = _service.now();
-    return isSameDay(day, now) ? DayPart.of(now.hour * 60 + now.minute) : DayPart.evening;
+    final wanted = isSameDay(day, now) ? DayPart.of(now.hour * 60 + now.minute) : DayPart.evening;
+    final open = visibleParts;
+    if (open.isEmpty || open.contains(wanted)) return wanted;
+    return open.firstWhere((p) => p.index > wanted.index, orElse: () => open.last);
   }
 
   // ─────────────── Inputs ───────────────
@@ -154,7 +190,9 @@ class BookingFormController extends GetxController {
     period.value = _defaultPeriod(day);
   }
 
-  void selectPeriod(DayPart value) => period.value = value;
+  void selectPeriod(DayPart value) {
+    if (visibleParts.contains(value)) period.value = value; // the day bar can be tapped on closed hours
+  }
 
   /// Tap a free start time to pick it (tap the chosen start again to clear).
   /// The duration shrinks if the next booking leaves less room.
@@ -170,12 +208,30 @@ class BookingFormController extends GetxController {
     if (duration.value > room) duration.value = room;
   }
 
-  /// +/- one step; stays within 30 min .. the room before the next booking.
-  void changeDuration(int steps) {
-    final next = duration.value + steps * BookingRules.slotStep;
-    final max = startMinute.value == null ? TimeRange.minutesPerDay : maxDuration;
-    if (next >= BookingRules.slotStep && next <= max) duration.value = next;
+  /// Tap a free session to pick it (tap it again to clear).
+  void selectSession(BookingSession session) {
+    if (chosenSlots.firstOrNull == session.time) {
+      startMinute.value = null;
+      return;
+    }
+    if (sessionState(session) != SlotState.available) return;
+    startMinute.value = session.time.startMinute;
+    duration.value = session.time.durationMinutes;
   }
+
+  /// +/- one step; stays within the policy's minimum .. the room before the next booking or closing.
+  void changeDuration(int steps) {
+    final next = duration.value + steps * policy.step;
+    final max = startMinute.value == null ? policy.maxDuration : maxDuration;
+    if (next >= policy.minDuration && next <= max) duration.value = next;
+  }
+
+  /// Sets 24 hours from the chosen start (priced by the hour like any other booking).
+  void selectFullDay() {
+    if (canBookFullDay) duration.value = TimeRange.minutesPerDay;
+  }
+
+  void onPriceChanged(String text) => price.value = int.tryParse(BookingRules.digitsOnly(text)) ?? 0; // _capMoney follows via everAll
 
   void onAdvanceChanged(String text) {
     final parsed = int.tryParse(BookingRules.digitsOnly(text)) ?? 0;
@@ -207,6 +263,11 @@ class BookingFormController extends GetxController {
 
   void _writeAdvance(int value) => _write(advanceCtrl, value);
 
+  void _writePrice(int value) {
+    price.value = value;
+    _write(priceCtrl, value);
+  }
+
   void _write(TextEditingController ctrl, int value) {
     final text = value == 0 ? '' : value.toString(); // 0 shows as the field's hint
     ctrl.value = TextEditingValue(
@@ -236,6 +297,7 @@ class BookingFormController extends GetxController {
     resourceId.value = b.resourceId;
     date.value = b.date;
     _applySlots(b.slots);
+    if (b.pricing == PricingMode.manual) _writePrice(b.totalFee);
     discount.value = b.discount;
     _write(discountCtrl, b.discount);
     advance.value = b.amountCollected;
@@ -253,6 +315,7 @@ class BookingFormController extends GetxController {
     final range = TimeRange(b.slots.first.startMinute, b.slots.last.endMinute);
     final free = BookingRules.validateSlots([range], date: date.value, now: _service.now(), occupied: occupied) == null;
     if (free) _applySlots(b.slots);
+    if (isManualPrice && b.pricing == PricingMode.manual) _writePrice(b.totalFee); // same service, same price (editable)
     return free;
   }
 
@@ -277,9 +340,10 @@ class BookingFormController extends GetxController {
       c.clear();
     }
     startMinute.value = null;
-    duration.value = 60;
+    duration.value = policy.defaultDuration;
     date.value = dateOnly(_service.now());
     period.value = _defaultPeriod(date.value);
+    _writePrice(0);
     advance.value = 0;
     _writeAdvance(0);
     discount.value = 0; // also not copied by Repeat: a discount is a one-off
@@ -311,7 +375,9 @@ class BookingFormController extends GetxController {
       resourceId: resourceId.value,
       date: date.value,
       slots: chosenSlots,
+      pricing: pricing,
       hourlyRate: hourlyRate,
+      price: price.value,
       discount: effectiveDiscount,
       advancePaid: advance.value,
     );

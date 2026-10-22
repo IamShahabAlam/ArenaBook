@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../app/config/app_client_config.dart';
 import '../../../app/config/arena_theme.dart';
 import '../../../app/service/getx_service/booking_service.dart';
 import '../../../app/utils/formatters/arena_format.dart';
@@ -41,7 +42,7 @@ class BookingsView extends GetView<BookingsController> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Ground Bookings', style: context.text.titleLarge),
+                  Text(AppClientConfig.terms.bookings, style: context.text.titleLarge),
                   const SizedBox(height: 2),
                   Text('Filter, edit, repeat or cancel slot bookings', style: context.text.bodySmall),
                 ],
@@ -124,7 +125,7 @@ class BookingsView extends GetView<BookingsController> {
                 ),
               BookingList(
                 bookings: list,
-                empty: const EmptyState(icon: Icons.search_off_rounded, message: 'No matching ground bookings found.'),
+                empty: EmptyState(icon: Icons.search_off_rounded, message: 'No matching ${AppClientConfig.terms.bookings.toLowerCase()} found.'),
               ),
             ],
           );

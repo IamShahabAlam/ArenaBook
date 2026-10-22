@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../../app/config/app_client_config.dart';
 import '../../../app/config/arena_theme.dart';
 import '../../../app/service/service_handler.dart/settings_store.dart';
 import '../../../app/service/service_handler.dart/theme_store.dart';
 import '../../../app/utils/custom_functions/arena_toast.dart';
+import '../../../data/models/pricing.dart';
 import '../../../data/models/resource.dart';
 import '../widgets/arena_widgets.dart';
 import 'arena_dialog.dart';
@@ -109,32 +111,35 @@ class _SettingsDialogState extends State<SettingsDialog> {
               style: context.text.bodyMedium?.copyWith(color: c.cricketText, fontWeight: FontWeight.w800),
               decoration: const InputDecoration(hintText: 'e.g. Rs, \$, AED', counterText: ''),
             ),
-            const SizedBox(height: 12),
-            // Two rate fields per row, one per offered resource type.
-            LayoutBuilder(
-              builder: (context, box) => Wrap(
-                spacing: 10,
-                runSpacing: 12,
-                children: [
-                  for (final e in _rates.entries)
-                    SizedBox(
-                      width: _rates.length == 1 ? box.maxWidth : (box.maxWidth - 10) / 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          FieldLabel('${e.key.shortLabel} Rate / Hr'),
-                          TextFormField(controller: e.value, keyboardType: TextInputType.number, inputFormatters: rateFormatters, validator: _rateError),
-                        ],
+            // Hourly rates only matter for hourly pricing; with a typed price per booking they'd do nothing.
+            if (AppClientConfig.pricing == PricingMode.hourly) ...[
+              const SizedBox(height: 12),
+              // Two rate fields per row, one per offered resource type.
+              LayoutBuilder(
+                builder: (context, box) => Wrap(
+                  spacing: 10,
+                  runSpacing: 12,
+                  children: [
+                    for (final e in _rates.entries)
+                      SizedBox(
+                        width: _rates.length == 1 ? box.maxWidth : (box.maxWidth - 10) / 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            FieldLabel('${e.key.shortLabel} Rate / Hr'),
+                            TextFormField(controller: e.value, keyboardType: TextInputType.number, inputFormatters: rateFormatters, validator: _rateError),
+                          ],
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'New rates apply to new bookings. Existing bookings keep the rate they were made with.',
-              style: context.text.labelSmall?.copyWith(fontWeight: FontWeight.w500),
-            ),
+              const SizedBox(height: 8),
+              Text(
+                'New rates apply to new bookings. Existing bookings keep the rate they were made with.',
+                style: context.text.labelSmall?.copyWith(fontWeight: FontWeight.w500),
+              ),
+            ],
           ],
         ),
       ),

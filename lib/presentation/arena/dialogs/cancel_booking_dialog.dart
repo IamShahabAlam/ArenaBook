@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/config/app_client_config.dart';
 import '../../../app/config/arena_theme.dart';
 import '../../../app/service/getx_service/booking_service.dart';
 import '../../../app/utils/custom_functions/arena_toast.dart';
@@ -65,7 +66,7 @@ class _CancelBookingDialogState extends State<CancelBookingDialog> {
     }
 
     return ArenaDialog(
-      title: 'Cancel Ground Booking',
+      title: 'Cancel ${AppClientConfig.terms.booking}',
       icon: Icons.block_rounded,
       iconColor: c.dangerText,
       titleColor: c.dangerText,
@@ -80,7 +81,7 @@ class _CancelBookingDialogState extends State<CancelBookingDialog> {
           Text('${ArenaFormat.shortDay(b.date)} · ${b.slotsLabel} · ${ArenaFormat.money(b.advancePaid)} advance paid', style: context.text.bodySmall),
           if (hasAdvance) ...[
             const SizedBox(height: 14),
-            const FieldLabel('Was advance payment returned to player?'),
+            FieldLabel('Was advance payment returned to ${AppClientConfig.terms.customer.toLowerCase()}?'),
             Row(
               children: [
                 Expanded(child: choice('Yes, Returned', true, SoftTone.success)),
@@ -101,7 +102,7 @@ class _CancelBookingDialogState extends State<CancelBookingDialog> {
             onChanged: (_) {
               if (_error != null) setState(() => _error = null);
             },
-            decoration: InputDecoration(hintText: 'e.g. Player requested cancellation due to rain', errorText: _error),
+            decoration: InputDecoration(hintText: AppClientConfig.terms.cancelReasonHint, errorText: _error),
           ),
         ],
       ),

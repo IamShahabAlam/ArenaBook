@@ -59,11 +59,12 @@ lib/
 ├── main.dart                     # awaits InitBindings, then GetMaterialApp (ArenaTheme light/dark)
 ├── routes/                       # app_pages.dart (PageNames) + app_routes.dart (GetPage list)
 ├── app/config/                   # AppClientConfig, AppStrings, AppCache keys, arena_theme.dart, AppAssets
-├── app/config/clients/           # ClientConfig + one file per client (flavor)
+├── app/config/business/          # BusinessProfile (Terms + BookingPolicy + PricingMode); profiles.dart: sportsVenue, spaceRental, eventVenue, vehicleRental
+├── app/config/clients/           # ClientConfig + one file per client (flavor); each picks a profile
 ├── app/service/getx_service/     # BookingService, AppAccessService, + starter services
 ├── app/service/service_handler.dart/  # prefs-backed stores: SettingsStore, ThemeStore, CacheField
 ├── app/utils/                    # ArenaToast, ArenaFormat, ArenaLogo, Logger, starter widgets
-├── data/models/                  # Booking, ResourceType/Resource, TimeRange, AppAccess (pure Dart + JSON)
+├── data/models/                  # Booking, ResourceType/Resource, TimeRange, BookingPolicy, PricingMode, AppAccess (pure Dart + JSON)
 ├── data/rules/                   # BookingRules, BookingStats, InvoiceText: pure, unit-tested logic
 ├── data/repositories/booking/    # BookingRepository interface + Hive and in-memory implementations
 └── presentation/
@@ -90,8 +91,12 @@ lib/
 **Clients (flavors):** one codebase ships a separate app per arena client. **The flavor name is the client id.**
 - `AppClientConfig.client` = `ClientConfig.forFlavor(appFlavor)`. Flutter compiles the flavor in, so there are no copy or symlink
   steps. No flavor (unit tests) means `demo`; an unknown flavor throws.
-- Per-client values (resource types and resources, currency, WhatsApp country code, discount flag) live in `lib/app/config/clients/<id>.dart`.
-  Read them through `AppClientConfig` (`.client`, `.resourceTypes`, `.enableDiscount`), never by importing a client file.
+- Per-client values (business profile, resource types and resources, currency, WhatsApp country code, discount flag) live in `lib/app/config/clients/<id>.dart`.
+  Read them through `AppClientConfig` (`.client`, `.profile`, `.terms`, `.policy`, `.pricing`, `.resourceTypes`, `.enableDiscount`), never by importing a client file.
+- `profile` is required: the developer picks the client's kind of business when setting the client up. A new kind of business
+  gets a new profile in `business/profiles.dart` (add it to `allProfiles`; the tests check every one). A client can override the
+  profile's time rules with `ClientConfig.policy` (e.g. its own opening hours) and its pricing with `ClientConfig.pricing`.
+  Profiles hold data only, so a setup screen or database can store them later.
 - Every client must be listed in each of these places: `ClientConfig.all`, `val clients` in `android/app/build.gradle.kts`,
   `clients` in `ios/Podfile`, the iOS `Debug-/Release-/Profile-<id>` configurations plus a `<id>.xcscheme`, and `.vscode/launch.json`.
   **Use `dart run tool/clients.dart add <id>`**, never hand edits; `test/clients_config_test.dart` fails when the lists drift.
@@ -128,6 +133,9 @@ lib/
 - Fonts: Outfit (display) and Plus Jakarta Sans (body), bundled with OFL licences registered in `main.dart`.
 - Portrait only. Edge-to-edge system bars are set in `MyApp.builder`.
 - Numeric text fields that show a placeholder `0` must clear or select it on focus, so typing replaces the value.
+- **Industry words come from `AppClientConfig.terms`**, never literals: court(s), ground, sport, player, fee name, arena
+  (e.g. `'All ${AppClientConfig.terms.resources}'`). The brand ("ArenaBook", "ARENABOOK") stays literal.
+  `business_profile_test.dart` fails if a sports word shows up under a studio profile.
 
 **Formatting and data**
 - Money is an `int` in whole currency units. Format it with `ArenaFormat.money(...)`, which uses the currency from `SettingsStore`.
@@ -148,14 +156,22 @@ lib/
   Never hard-code "cricket" or "padel" outside the config and the tests.
 - **Never branch on the business type or client id.** A difference between businesses is a value (config), a behaviour
   (a sealed strategy class) or a flag (`Features`); see `docs/EXPANSION_PLAN.md`.
-- **No instalments:** a booking is paid as an advance plus the balance in one go. Overruns are handled by editing the booking.
+- **No instalments:** a booking is paid as an advance plus the balance in one go. Past time is never edited: for an overrun
+  the owner edits the amount received and explains the extra charge in the notes.
 - **No double booking** on the same court. Overlap is half-open: 9–10 and 10–11 don't clash. A different court at
   the same time is allowed.
-- **Booking time:** one continuous range, start on a 30-minute step (any of the 24 hours), plus a duration. Bookings may cross midnight:
-  a booking is stored on its **start date**, and `endMinute` can reach 2880. `BookingRules.occupied` projects the
-  previous and next day onto the timeline, so conflicts are caught from either date. Past slots can't be booked,
-  except that an edit may keep slots that already started today.
-- **Money:** `totalFee` = minutes × the rate frozen at booking time. Discount is 0..totalFee and only exists while
+- **Booking time:** one continuous range, start + duration, following the client's `BookingPolicy` (`AppClientConfig.policy` =
+  the client's override, else its profile's): `step` (15/30/60), `minDuration`/`maxDuration` (24 h max), `defaultDuration`,
+  `openHours` (null = 24 h; may pass midnight), or fixed `sessions` (whole sessions only). The sports venue default is
+  today's rule: 30-minute steps, any of the 24 hours. Bookings may cross midnight: a booking is stored on its **start date**,
+  and `endMinute` can reach 2880. `BookingRules.occupied` projects the previous and next day onto the timeline, so conflicts
+  are caught from either date. Past slots can't be booked, except that an edit may keep slots it already had (even if the
+  policy changed since). Every `BookingRules` time function takes an optional `policy:` (tests pass one; the app uses the client's).
+- **Pricing mode** (`PricingMode`, `AppClientConfig.pricing` = the client's override, else its profile's):
+  `hourly` = minutes × the rate frozen at booking time (Settings rates); `manual` = the owner types the price of each
+  booking (required; Settings hides the rates). Each booking stores its own `pricing` (schema v3; older records load as hourly),
+  so changing a client's mode never re-prices old bookings, and an edit keeps the booking's mode. Manual bookings save `hourlyRate` 0.
+- **Money:** `totalFee` = the hourly fee or the typed price. Discount is 0..totalFee and only exists while
   `AppClientConfig.enableDiscount` is on (form and invoices). Advance is clamped to the payable amount.
   `balanceDue` = payable − advance. Editing a booking re-evaluates a previous Mark Paid.
 - Booking ids are `TRF-1001`, `TRF-1002`, …, from `BookingRepository.nextId()`.
@@ -187,11 +203,13 @@ app through them.
 ## Tests (`test/`)
 
 - `booking_rules_test.dart` / `booking_service_test.dart`: pure logic. Use `InMemoryBookingRepository` and a fixed `clock`.
-- `arena_app_test.dart`: widget tests for the arena screens. `resource_types_config_test.dart`, `app_access_test.dart`,
+- `arena_app_test.dart`: widget tests for the arena screens. `business_profile_test.dart` (wording, every profile),
+  `booking_policy_test.dart` (time rules, opening hours, sessions, full day), `pricing_test.dart` (hourly vs typed price, v2 records),
+  `resource_types_config_test.dart`, `app_access_test.dart`,
   `splash_and_logo_test.dart`, `cache_field_test.dart`, `response_cache_test.dart`.
 - Helpers: `test/helpers/resource_types.dart` (`cricket`, `padel` from config) and `temp_dir.dart` (Hive temp dirs with
   retries for Windows file locks).
-- `AppClientConfig.enableDiscount` and `.resourceTypes` are deliberately not `final`, so tests can toggle them. Restore them in `tearDown`.
+- `AppClientConfig.enableDiscount`, `.resourceTypes`, `.profile`, `.policy` and `.pricing` are deliberately not `final`, so tests can toggle them. Restore them in `tearDown`.
 - `clients_config_test.dart` checks that every client is wired into the native files, launch.json and pubspec, and that client
   assets and icons are flavored correctly. `clients_tool_test.dart` runs `tool/clients.dart` on a temp copy of those files.
 - Put new pure logic in `data/rules` or a model, so it can be unit tested without widgets.

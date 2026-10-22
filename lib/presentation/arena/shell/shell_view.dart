@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../../app/config/app_client_config.dart';
 import '../../../app/config/app_strings.dart';
 import '../../../app/config/arena_theme.dart';
 import '../../../app/service/getx_service/app_access_service.dart';
@@ -326,7 +327,7 @@ class _ArenaDrawer extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const _Wordmark(size: 16),
-                        Text('Ground Management', style: context.text.labelSmall?.copyWith(color: c.cricketText)),
+                        Text('${AppClientConfig.terms.subject} Management', style: context.text.labelSmall?.copyWith(color: c.cricketText)),
                       ],
                     ),
                   ),
