@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'helpers/resource_types.dart';
 import 'package:get/get.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:arenabook/app/config/app_client_config.dart';
+import 'package:arenabook/app/config/business/business_profile.dart';
 import 'package:arenabook/app/config/app_strings.dart';
 import 'package:arenabook/app/config/arena_theme.dart';
 import 'package:arenabook/app/service/getx_service/app_access_service.dart';
@@ -396,8 +398,9 @@ void main() {
 
   for (final enabled in [true, false]) {
     testWidgets('booking form ${enabled ? 'shows' : 'hides'} the discount field (config)', (tester) async {
-      AppClientConfig.enableDiscount = enabled;
-      addTearDown(() => AppClientConfig.enableDiscount = true);
+      final original = AppClientConfig.features;
+      AppClientConfig.features = Features(discount: enabled);
+      addTearDown(() => AppClientConfig.features = original);
       await setUpServices();
       await pumpApp(tester, dark: true);
       await tester.tap(find.byTooltip('New booking'));
@@ -432,6 +435,25 @@ void main() {
       expect(BookingFormController.to.discount.value, fee);
       expect(BookingFormController.to.payable, 0);
       semantics.dispose();
+      await disposeApp(tester);
+    });
+  }
+
+  for (final entryPass in [true, false]) {
+    testWidgets('invoice ${entryPass ? 'shows' : 'hides'} the QR entry pass (config)', (tester) async {
+      final original = AppClientConfig.features;
+      AppClientConfig.features = Features(entryPass: entryPass);
+      addTearDown(() => AppClientConfig.features = original);
+      await setUpServices(seed: [seeded(id: 'TRF-1001', hour: 20)]);
+      await pumpApp(tester, dark: true);
+
+      InvoiceSheet.show('TRF-1001');
+      await tester.pumpAndSettle();
+      expect(find.byType(QrImageView), entryPass ? findsOneWidget : findsNothing);
+      expect(find.text('VERIFIED ARENABOOK PASS'), entryPass ? findsOneWidget : findsNothing);
+      expect(find.text(AppClientConfig.terms.passHint), entryPass ? findsOneWidget : findsNothing);
+      expect(find.text('Remaining Balance:'), findsOneWidget); // the rest of the receipt is unchanged
+
       await disposeApp(tester);
     });
   }

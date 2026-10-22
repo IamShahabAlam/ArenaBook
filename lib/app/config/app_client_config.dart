@@ -19,13 +19,13 @@ class AppClientConfig {
   /// The client this build is for, picked by `--flavor <id>` (configs live in clients/).
   static final client = ClientConfig.forFlavor(appFlavor);
 
-  /// Discount field in the booking form and discount lines on invoices. (Not final: tests toggle it.)
-  static bool enableDiscount = client.enableDiscount;
+  /// Optional parts (discount, QR entry pass): the client's own, else its profile's. (Not final: tests swap it.)
+  static Features features = client.features ?? client.profile.features;
 
   /// The client's resource types and their resources; the whole app follows this list. (Not final: tests swap it.)
   static List<ResourceType> resourceTypes = client.resourceTypes;
 
-  /// The client's kind of business: wording now, time policy and features later. (Not final: tests swap it.)
+  /// The client's kind of business (wording, time rules, pricing, features). (Not final: tests swap it.)
   static BusinessProfile profile = client.profile;
 
   /// What this business calls its bookings, resources, customers and fee.

@@ -289,35 +289,38 @@ class _ReceiptBody extends StatelessWidget {
           Divider(color: c.border),
           const SizedBox(height: 4),
           line('Remaining Balance:', ArenaFormat.money(b.balanceDue), color: b.balanceDue > 0 ? c.warningText : c.textPrimary, bold: true),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('VERIFIED ARENABOOK PASS', style: context.text.labelSmall?.copyWith(color: c.textMuted, letterSpacing: 0.6)),
-                    Text(
-                      AppClientConfig.terms.passHint,
-                      style: context.text.labelSmall?.copyWith(color: c.textMuted, fontWeight: FontWeight.w500),
-                    ),
-                  ],
+          // QR entry pass only for businesses that check customers in (Features.entryPass).
+          if (AppClientConfig.features.entryPass) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('VERIFIED ARENABOOK PASS', style: context.text.labelSmall?.copyWith(color: c.textMuted, letterSpacing: 0.6)),
+                      Text(
+                        AppClientConfig.terms.passHint,
+                        style: context.text.labelSmall?.copyWith(color: c.textMuted, fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                child: QrImageView(
-                  data: InvoiceText.qrData(b),
-                  size: 64,
-                  padding: EdgeInsets.zero,
-                  semanticsLabel: 'Booking QR code for ${b.id}',
-                  eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Color(0xFF020617)),
-                  dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Color(0xFF020617)),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                  child: QrImageView(
+                    data: InvoiceText.qrData(b),
+                    size: 64,
+                    padding: EdgeInsets.zero,
+                    semanticsLabel: 'Booking QR code for ${b.id}',
+                    eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Color(0xFF020617)),
+                    dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Color(0xFF020617)),
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ],
       ),
     );

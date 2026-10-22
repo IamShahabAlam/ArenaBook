@@ -106,7 +106,7 @@ class BookingFormController extends GetxController {
   /// Field error for the typed price (manual pricing only).
   String? get priceError => isManualPrice ? BookingRules.validatePrice(pricing, hourlyRate: 0, price: price.value) : null;
 
-  bool get discountEnabled => AppClientConfig.enableDiscount;
+  bool get discountEnabled => AppClientConfig.features.discount;
 
   /// Feature off: an edited booking keeps the discount it was saved with, so its price doesn't change.
   int get effectiveDiscount => BookingRules.clampDiscount(discountEnabled ? discount.value : (_original?.discount ?? 0), totalFee);

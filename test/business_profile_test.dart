@@ -101,6 +101,8 @@ void main() {
     test('ships the sports venue profile with the original wording and time rules', () {
       expect(AppClientConfig.profile, same(sportsVenue));
       expect(AppClientConfig.policy, same(sportsVenue.policy));
+      expect(AppClientConfig.features.discount, isTrue); // today's behaviour: discount and QR pass on
+      expect(AppClientConfig.features.entryPass, isTrue);
       final terms = AppClientConfig.terms;
       expect(terms.booking, 'Ground Booking');
       expect(terms.bookings, 'Ground Bookings');

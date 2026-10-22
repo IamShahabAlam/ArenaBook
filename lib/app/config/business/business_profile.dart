@@ -2,9 +2,9 @@ import '../../../data/models/booking_policy.dart';
 import '../../../data/models/pricing.dart';
 
 /// How one kind of business works. Holds data only (strings, numbers), so a setup screen or database can store it later.
-/// Optional features join it in a later phase (docs/EXPANSION_PLAN.md).
+/// A client picks one and may override its policy, pricing or features (ClientConfig).
 class BusinessProfile {
-  const BusinessProfile({required this.id, required this.terms, required this.policy, this.pricing = PricingMode.hourly});
+  const BusinessProfile({required this.id, required this.terms, required this.policy, this.pricing = PricingMode.hourly, this.features = const Features()});
 
   /// Stable key for a future setup screen or database; never change once shipped.
   final String id;
@@ -16,6 +16,9 @@ class BusinessProfile {
 
   /// Default way to price a booking; a client can override it (ClientConfig.pricing).
   final PricingMode pricing;
+
+  /// Optional parts this kind of business uses; a client can replace them (ClientConfig.features).
+  final Features features;
 }
 
 /// The business's own words for the core concepts. Screens and receipts read these instead of literals.
@@ -46,4 +49,15 @@ class Terms {
 
   String get booking => '$subject Booking';
   String get bookings => '$subject Bookings';
+}
+
+/// Optional parts of the app a business may or may not use. Data only; the defaults are ArenaBook's original behaviour.
+class Features {
+  const Features({this.discount = true, this.entryPass = true});
+
+  /// Discount field in the booking form and discount lines on invoices.
+  final bool discount;
+
+  /// QR entry pass on the receipt (with [Terms.passHint]), for places that check customers in.
+  final bool entryPass;
 }

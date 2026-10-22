@@ -14,7 +14,7 @@ class InvoiceText {
 
   /// Itemise the discount only when the feature is on and this booking has one.
   /// When hidden, totals still use [Booking.payable], so the numbers always add up.
-  static bool showDiscount(Booking b, {bool? enabled}) => (enabled ?? AppClientConfig.enableDiscount) && b.discount > 0;
+  static bool showDiscount(Booking b, {bool? enabled}) => (enabled ?? AppClientConfig.features.discount) && b.discount > 0;
 
   /// WhatsApp message (*bold* is WhatsApp markdown).
   static String whatsApp(Booking b, {required String currency, bool? discountEnabled}) {

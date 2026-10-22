@@ -14,13 +14,13 @@ class ClientConfig {
     this.pricing,
     this.currency = 'Rs',
     this.countryCode = '92',
-    this.enableDiscount = true,
+    this.features,
   });
 
   /// Flavor name and this client's key in the access Gist. Lowercase letters, digits and `_`; never change once shipped.
   final String id;
 
-  /// The kind of business (from business/profiles.dart): its wording, and later its time policy and features.
+  /// The kind of business (from business/profiles.dart): its wording, time rules, pricing and features.
   final BusinessProfile profile;
 
   /// The client's resource types (e.g. sports) and their resources (e.g. courts); the whole app follows this list.
@@ -38,8 +38,8 @@ class ClientConfig {
   /// Dialling code for WhatsApp and call links, without '+'.
   final String countryCode;
 
-  /// Discount field in the booking form and discount lines on invoices.
-  final bool enableDiscount;
+  /// This client's own optional parts (discount, QR entry pass); null = the profile's. Replaces them as a whole.
+  final Features? features;
 
   /// Path of this client's own image or file in `assets/clients/<id>/`; only that client's build bundles the folder.
   String asset(String file) => 'assets/clients/$id/$file';

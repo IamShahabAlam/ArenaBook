@@ -59,7 +59,7 @@ lib/
 ├── main.dart                     # awaits InitBindings, then GetMaterialApp (ArenaTheme light/dark)
 ├── routes/                       # app_pages.dart (PageNames) + app_routes.dart (GetPage list)
 ├── app/config/                   # AppClientConfig, AppStrings, AppCache keys, arena_theme.dart, AppAssets
-├── app/config/business/          # BusinessProfile (Terms + BookingPolicy + PricingMode); profiles.dart: sportsVenue, spaceRental, eventVenue, vehicleRental
+├── app/config/business/          # BusinessProfile (Terms + BookingPolicy + PricingMode + Features); profiles.dart: sportsVenue, spaceRental, eventVenue, vehicleRental
 ├── app/config/clients/           # ClientConfig + one file per client (flavor); each picks a profile
 ├── app/service/getx_service/     # BookingService, AppAccessService, + starter services
 ├── app/service/service_handler.dart/  # prefs-backed stores: SettingsStore, ThemeStore, CacheField
@@ -91,11 +91,12 @@ lib/
 **Clients (flavors):** one codebase ships a separate app per arena client. **The flavor name is the client id.**
 - `AppClientConfig.client` = `ClientConfig.forFlavor(appFlavor)`. Flutter compiles the flavor in, so there are no copy or symlink
   steps. No flavor (unit tests) means `demo`; an unknown flavor throws.
-- Per-client values (business profile, resource types and resources, currency, WhatsApp country code, discount flag) live in `lib/app/config/clients/<id>.dart`.
-  Read them through `AppClientConfig` (`.client`, `.profile`, `.terms`, `.policy`, `.pricing`, `.resourceTypes`, `.enableDiscount`), never by importing a client file.
+- Per-client values (business profile, resource types and resources, currency, WhatsApp country code, optional `features`) live in `lib/app/config/clients/<id>.dart`.
+  Read them through `AppClientConfig` (`.client`, `.profile`, `.terms`, `.policy`, `.pricing`, `.features`, `.resourceTypes`), never by importing a client file.
 - `profile` is required: the developer picks the client's kind of business when setting the client up. A new kind of business
   gets a new profile in `business/profiles.dart` (add it to `allProfiles`; the tests check every one). A client can override the
-  profile's time rules with `ClientConfig.policy` (e.g. its own opening hours) and its pricing with `ClientConfig.pricing`.
+  profile's time rules with `ClientConfig.policy` (e.g. its own opening hours), its pricing with `ClientConfig.pricing`, and
+  its `Features` (discount, QR entry pass; both on by default) with `ClientConfig.features`, which replaces them as a whole.
   Profiles hold data only, so a setup screen or database can store them later.
 - Every client must be listed in each of these places: `ClientConfig.all`, `val clients` in `android/app/build.gradle.kts`,
   `clients` in `ios/Podfile`, the iOS `Debug-/Release-/Profile-<id>` configurations plus a `<id>.xcscheme`, and `.vscode/launch.json`.
@@ -172,11 +173,12 @@ lib/
   booking (required; Settings hides the rates). Each booking stores its own `pricing` (schema v3; older records load as hourly),
   so changing a client's mode never re-prices old bookings, and an edit keeps the booking's mode. Manual bookings save `hourlyRate` 0.
 - **Money:** `totalFee` = the hourly fee or the typed price. Discount is 0..totalFee and only exists while
-  `AppClientConfig.enableDiscount` is on (form and invoices). Advance is clamped to the payable amount.
+  `AppClientConfig.features.discount` is on (form and invoices). Advance is clamped to the payable amount.
   `balanceDue` = payable − advance. Editing a booking re-evaluates a previous Mark Paid.
 - Booking ids are `TRF-1001`, `TRF-1002`, …, from `BookingRepository.nextId()`.
 - Cancelling requires a reason and records whether the advance was returned. Cancelled bookings can't be edited.
 - Mark Paid asks for confirmation. After a submit, closing the invoice returns to Home.
+- The receipt's QR entry pass shows only while `AppClientConfig.features.entryPass` is on.
 - **Invoice sharing:** *Share via WhatsApp* captures the existing invoice widget as an image (contact buttons
   excluded) and shares it. *Copy Text* copies `InvoiceText.plain`. The two actions stay independent.
 - **Remote trial switch** (`AppAccessService` + `AppAccess`, config in a GitHub Gist at `AppClientConfig.accessConfigUrl`):
@@ -209,7 +211,7 @@ app through them.
   `splash_and_logo_test.dart`, `cache_field_test.dart`, `response_cache_test.dart`.
 - Helpers: `test/helpers/resource_types.dart` (`cricket`, `padel` from config) and `temp_dir.dart` (Hive temp dirs with
   retries for Windows file locks).
-- `AppClientConfig.enableDiscount`, `.resourceTypes`, `.profile`, `.policy` and `.pricing` are deliberately not `final`, so tests can toggle them. Restore them in `tearDown`.
+- `AppClientConfig.features`, `.resourceTypes`, `.profile`, `.policy` and `.pricing` are deliberately not `final`, so tests can toggle them. Restore them in `tearDown`.
 - `clients_config_test.dart` checks that every client is wired into the native files, launch.json and pubspec, and that client
   assets and icons are flavored correctly. `clients_tool_test.dart` runs `tool/clients.dart` on a temp copy of those files.
 - Put new pure logic in `data/rules` or a model, so it can be unit tested without widgets.
