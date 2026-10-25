@@ -3,6 +3,9 @@ import '../../../data/models/pricing.dart';
 import '../../../data/models/resource.dart';
 import '../business/business_profile.dart';
 import 'demo.dart';
+import 'demo_space.dart';
+import 'demo_event.dart';
+import 'demo_vehicle.dart';
 
 /// Everything that differs between clients. One file per client in this folder; `--flavor <id>` picks it.
 class ClientConfig {
@@ -45,7 +48,7 @@ class ClientConfig {
   String asset(String file) => 'assets/clients/$id/$file';
 
   /// Every client this codebase ships. Must match the flavors in android/app/build.gradle.kts (a test checks).
-  static const all = [demo];
+  static const all = [demo, demoSpace, demoEvent, demoVehicle];
 
   /// No flavor (unit tests) means demo. An unknown flavor is a build mistake, so it fails loudly.
   static ClientConfig forFlavor(String? flavor) {

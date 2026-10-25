@@ -6,7 +6,7 @@ plugins {
 }
 
 // One flavor per client, named by its ClientConfig id (lib/app/config/clients). A test keeps the two lists in sync.
-val clients = listOf("demo")
+val clients = listOf("demo", "demo_space", "demo_event", "demo_vehicle")
 
 android {
     namespace = "com.devcatstudios.arenabook"

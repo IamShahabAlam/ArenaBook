@@ -5,7 +5,7 @@
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
 # One flavor per client (same list as android/app/build.gradle.kts; a test keeps them in sync).
-clients = ['demo']
+clients = ['demo', 'demo_space', 'demo_event', 'demo_vehicle']
 
 configurations = { 'Debug' => :debug, 'Profile' => :release, 'Release' => :release }
 clients.each do |client|

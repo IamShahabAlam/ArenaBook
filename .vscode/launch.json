@@ -16,6 +16,51 @@
             "program": "lib/main.dart",
             "flutterMode": "release",
             "args": ["--flavor", "demo"]
+        },
+        {
+            "name": "demo_space",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "args": ["--flavor", "demo_space"]
+        },
+        {
+            "name": "demo_space (release)",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "flutterMode": "release",
+            "args": ["--flavor", "demo_space"]
+        },
+        {
+            "name": "demo_event",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "args": ["--flavor", "demo_event"]
+        },
+        {
+            "name": "demo_event (release)",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "flutterMode": "release",
+            "args": ["--flavor", "demo_event"]
+        },
+        {
+            "name": "demo_vehicle",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "args": ["--flavor", "demo_vehicle"]
+        },
+        {
+            "name": "demo_vehicle (release)",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "flutterMode": "release",
+            "args": ["--flavor", "demo_vehicle"]
         }
     ]
 }
