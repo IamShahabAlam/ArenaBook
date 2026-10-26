@@ -380,6 +380,42 @@ void main() {
     expect(text, contains('8PM - 9PM'));
     expect(text, contains('*Balance Due:* Rs 1,000'));
     expect(InvoiceText.plain(b.settle(now), currency: 'AED'), contains('Due: AED 0'));
+
+    // The business heads the receipt, under the title.
+    final client = AppClientConfig.client;
+    final lines = text.split('\n');
+    expect(lines[1], '*${client.name}*');
+    expect(lines[2], '${client.address} · Ph: ${client.phone}');
+  });
+
+  testWidgets('the client\'s name and contacts show in the header, drawer, Home, invoice and About', (tester) async {
+    final client = AppClientConfig.client;
+    await setUpServices(seed: [seeded(id: 'TRF-1001', hour: 20)]);
+    await pumpApp(tester, dark: true);
+    expect(find.text(client.name), findsNWidgets(2), reason: 'header and Home banner');
+    expect(find.text(client.tagline!), findsOneWidget);
+    expect(find.text('ARENABOOK'), findsNothing, reason: 'the client\'s name replaces the wordmark');
+
+    await tester.tap(find.byTooltip('Menu'));
+    await tester.pumpAndSettle();
+    expect(find.text(client.name), findsNWidgets(3), reason: '+ drawer');
+    Navigator.of(tester.element(find.text('Settings & Preferences'))).pop();
+    await tester.pumpAndSettle();
+
+    InvoiceSheet.show('TRF-1001');
+    await tester.pumpAndSettle();
+    expect(find.text(client.contactLine()), findsOneWidget);
+    Navigator.of(tester.element(find.text('#TRF-1001'))).pop();
+    await tester.pumpAndSettle();
+
+    AboutArenaDialog.show();
+    await tester.pumpAndSettle();
+    expect(find.text(client.address!), findsOneWidget);
+    expect(find.text(client.phone!), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    Navigator.of(tester.element(find.text('About ArenaBook'))).pop();
+    await tester.pumpAndSettle();
+    await disposeApp(tester);
   });
 
   test('invoice text itemises the discount only when the feature is on', () {

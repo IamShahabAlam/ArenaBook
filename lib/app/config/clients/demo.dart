@@ -7,6 +7,10 @@ import 'client_config.dart';
 /// Demo arena: indoor cricket and padel, Pakistan.
 const demo = ClientConfig(
   id: 'demo',
+  name: 'Apex Arena',
+  tagline: 'Premier Indoor Arena Facility',
+  address: 'Sector F-11/1, Islamabad',
+  phone: '+92 341 2757081',
   profile: sportsVenue,
   resourceTypes: [
     ResourceType(

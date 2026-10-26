@@ -5,6 +5,8 @@ import '../../../app/config/arena_theme.dart';
 import '../../../data/models/resource.dart';
 import 'motion.dart';
 
+export 'client_logo.dart';
+
 /// Visual identity per resource type, from its configured icon and [ResourceTone].
 extension ResourceTypeVisuals on ResourceType {
   IconData get symbol => icon ?? Icons.sports_rounded;

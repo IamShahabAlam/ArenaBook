@@ -23,12 +23,22 @@ class AboutArenaDialog extends StatelessWidget {
     Widget row(String label, String value) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(child: Text(label, style: context.text.bodySmall)),
-          Text(value, style: context.text.labelMedium?.copyWith(color: c.textPrimary)),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: context.text.labelMedium?.copyWith(color: c.textPrimary),
+            ),
+          ),
         ],
       ),
     );
+
+    final client = AppClientConfig.client;
 
     return ArenaDialog(
       title: 'About ArenaBook',
@@ -37,6 +47,23 @@ class AboutArenaDialog extends StatelessWidget {
       actions: [SoftButton(label: 'Close', onPressed: () => Navigator.of(context).pop())],
       child: Column(
         children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: c.surfaceSunken,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: c.border),
+            ),
+            child: Column(
+              children: [
+                row('Client / Venue', client.name),
+                if (client.address != null && client.address!.isNotEmpty) row('Location', client.address!),
+                if (client.phone != null && client.phone!.isNotEmpty) row('Contact', client.phone!),
+                row('Profile', AppClientConfig.profile.terms.subject),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
           Container(
             width: 64,
             height: 64,

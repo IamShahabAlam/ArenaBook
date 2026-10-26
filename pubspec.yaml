@@ -95,6 +95,8 @@ flutter:
     - assets/svg/
     - assets/fonts/OFL-Outfit.txt
     - assets/fonts/OFL-PlusJakartaSans.txt
+    - path: assets/clients/demo_vehicle/
+      flavors: [demo_vehicle]
 
   # Fonts are bundled (not fetched at runtime) so the app looks right offline. Licences: assets/fonts/OFL-*.txt
   fonts:

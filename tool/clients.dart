@@ -45,11 +45,13 @@ String addClient(Directory root, String id) {
   final demo = f.read('$configDir/demo.dart');
   f.write(
     '$configDir/$id.dart',
-    _replaceOnce(
-      _replaceOnce(demo, 'const demo = ClientConfig(', 'const $name = ClientConfig('),
-      "id: 'demo',",
-      "id: '$id',",
-    ).replaceFirst(RegExp(r'^/// .*$', multiLine: true), '/// $id: copied from demo. Set its resource types, resources, currency and switches.'),
+    _ownBranding(
+      _replaceOnce(_replaceOnce(demo, 'const demo = ClientConfig(', 'const $name = ClientConfig('), "id: 'demo',", "id: '$id',").replaceFirst(
+        RegExp(r'^/// .*$', multiLine: true),
+        '/// $id: copied from demo. Set its name, contact details, resource types, resources, currency and switches.',
+      ),
+      id,
+    ),
   );
 
   var registry = f.read('$configDir/client_config.dart');
@@ -149,6 +151,14 @@ const _reserved = {
 };
 
 String _eol(String text) => text.contains('\r\n') ? '\r\n' : '\n';
+
+/// Never ship demo's business: the name comes from [id] ("royal_arena" -> "Royal Arena"), tagline, logo and contacts are dropped.
+String _ownBranding(String config, String id) {
+  final nameLine = RegExp(r'^  name: .*,$', multiLine: true);
+  if (nameLine.allMatches(config).length != 1) throw ClientToolException('Expected exactly one "name:" in demo.dart.');
+  final title = id.split('_').where((p) => p.isNotEmpty).map((p) => p[0].toUpperCase() + p.substring(1)).join(' ');
+  return config.replaceFirst(nameLine, "  name: '$title',").replaceAll(RegExp(r'^  (tagline|logoAsset|address|phone): .*\r?\n', multiLine: true), '');
+}
 
 String _replaceOnce(String text, String from, String to) {
   if (from.allMatches(text).length != 1) throw ClientToolException('Expected exactly one "$from".');

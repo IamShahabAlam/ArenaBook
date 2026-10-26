@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:arenabook/app/config/business/profiles.dart';
 import 'package:arenabook/app/config/clients/client_config.dart';
 import 'package:arenabook/app/config/clients/demo.dart';
 
@@ -39,6 +40,21 @@ void main() {
       expect(typeIds.toSet().length, typeIds.length, reason: client.id);
       expect(resourceIds.toSet().length, resourceIds.length, reason: client.id);
     }
+  });
+
+  test('every client has its own business name', () {
+    final names = ClientConfig.all.map((c) => c.name.trim()).toList();
+    expect(names, everyElement(isNotEmpty));
+    expect(names.toSet().length, names.length, reason: 'a copied name would put one business on another\'s receipts');
+  });
+
+  test('contactLine joins address and phone, skipping blanks', () {
+    ClientConfig client({String? address, String? phone}) =>
+        ClientConfig(id: 'x', name: 'X', address: address, phone: phone, profile: sportsVenue, resourceTypes: const []);
+    expect(client(address: 'Main Rd', phone: '0300').contactLine(phoneLabel: 'Ph: '), 'Main Rd · Ph: 0300');
+    expect(client(phone: '0300').contactLine(), '0300', reason: 'phone alone still shows');
+    expect(client(address: ' Main Rd ', phone: '  ').contactLine(), 'Main Rd');
+    expect(client().contactLine(), isEmpty);
   });
 
   // Each client is declared in several native files; these keep them in step with ClientConfig.all.

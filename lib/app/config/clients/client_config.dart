@@ -11,6 +11,11 @@ import 'demo_vehicle.dart';
 class ClientConfig {
   const ClientConfig({
     required this.id,
+    required this.name,
+    this.tagline,
+    this.logoAsset,
+    this.address,
+    this.phone,
     required this.profile,
     required this.resourceTypes,
     this.policy,
@@ -22,6 +27,25 @@ class ClientConfig {
 
   /// Flavor name and this client's key in the access Gist. Lowercase letters, digits and `_`; never change once shipped.
   final String id;
+
+  /// Business name shown in the header, drawer and receipts. Required: a default would ship another client's name.
+  final String name;
+
+  /// Home banner subtitle; null = a resource count.
+  final String? tagline;
+
+  /// Logo file in `assets/clients/<id>/` (e.g. `'logo.png'`, declared via `tool/clients.dart assets`); null = a monogram.
+  final String? logoAsset;
+
+  /// Address shown on receipts.
+  final String? address;
+
+  /// Business phone shown on receipts.
+  final String? phone;
+
+  /// Address and phone for receipts, skipping blanks; empty when neither is set.
+  String contactLine({String phoneLabel = ''}) =>
+      [if (address?.trim().isNotEmpty ?? false) address!.trim(), if (phone?.trim().isNotEmpty ?? false) '$phoneLabel${phone!.trim()}'].join(' · ');
 
   /// The kind of business (from business/profiles.dart): its wording, time rules, pricing and features.
   final BusinessProfile profile;

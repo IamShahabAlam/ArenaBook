@@ -22,6 +22,8 @@ class HomeView extends GetView<HomeController> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
       children: [
+        const _VenueBanner(),
+        const SizedBox(height: 14),
         Obx(() => ResourceTypeFilter(selected: controller.typeFilter.value, onChanged: controller.setFilter, withAvatars: true, gap: 14)),
         Obx(() {
           final s = controller.stats;
@@ -201,5 +203,50 @@ class _MetricCard extends StatelessWidget {
         ),
       ),
     ).entrance(context, index: index);
+  }
+}
+
+class _VenueBanner extends StatelessWidget {
+  const _VenueBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.arena;
+    final client = AppClientConfig.client;
+    final count = ResourceType.offered.map((t) => t.resources.length).fold(0, (a, b) => a + b);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: c.surfaceMuted,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: c.border),
+      ),
+      child: Row(
+        children: [
+          const ClientLogo(size: 38, radius: 12, elevation: true),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  client.name,
+                  style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  client.tagline ?? '$count ${AppClientConfig.terms.resources} · ${AppClientConfig.terms.subject} Management',
+                  style: context.text.bodySmall?.copyWith(color: c.textMuted),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

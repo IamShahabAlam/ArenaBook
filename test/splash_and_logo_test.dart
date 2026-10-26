@@ -5,8 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 
+import 'package:arenabook/app/config/app_client_config.dart';
 import 'package:arenabook/app/config/arena_theme.dart';
 import 'package:arenabook/app/utils/custom_widgets/arena_logo.dart';
+import 'package:arenabook/presentation/arena/widgets/client_logo.dart';
 import 'package:arenabook/presentation/general/splash/splash_controller.dart';
 import 'package:arenabook/presentation/general/splash/splash_view.dart';
 
@@ -79,6 +81,47 @@ void main() {
     // Decoded at display size, not the full 1024px asset.
     final provider = image.image as ResizeImage;
     expect(provider.width, (40 * tester.view.devicePixelRatio).ceil());
+  });
+
+  testWidgets('ClientLogo: monogram without a logo file', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ArenaTheme.light,
+        home: const Scaffold(body: ClientLogo(name: ' zeta studios')),
+      ),
+    );
+    expect(find.text('Z'), findsOneWidget);
+    expect(find.byType(Image), findsNothing);
+  });
+
+  testWidgets('ClientLogo: a logo file keeps its aspect ratio and is never cropped', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ArenaTheme.light,
+        home: const Scaffold(body: ClientLogo(size: 40, logoAsset: 'logo.png')),
+      ),
+    );
+    final image = tester.widget<Image>(find.byType(Image));
+    expect(image.fit, BoxFit.contain);
+    final provider = image.image as ResizeImage;
+    expect(provider.policy, ResizeImagePolicy.fit, reason: 'exact width + height would stretch a wide logo');
+    expect([provider.width, provider.height], everyElement((40 * tester.view.devicePixelRatio).ceil()));
+    expect((provider.imageProvider as AssetImage).assetName, AppClientConfig.client.asset('logo.png'));
+  });
+
+  testWidgets('ClientLogo: a missing logo file falls back to the monogram', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ArenaTheme.light,
+        home: const Scaffold(
+          body: ClientLogo(name: 'Zeta', logoAsset: 'missing.png'),
+        ),
+      ),
+    );
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200))); // let the asset load fail
+    await tester.pump();
+    expect(find.text('Z'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   // Contract for assets/images/logo.png, so a future logo swap can't silently break the app.

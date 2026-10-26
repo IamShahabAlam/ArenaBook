@@ -22,8 +22,12 @@ class InvoiceText {
     final emoji = b.resourceType.emoji;
     final itemise = showDiscount(b, enabled: discountEnabled);
     final terms = AppClientConfig.terms;
+    final client = AppClientConfig.client;
+    final contact = client.contactLine(phoneLabel: 'Ph: ');
     return [
       '$emoji *ARENABOOK ${terms.subject.toUpperCase()} RECEIPT*',
+      if (client.name.isNotEmpty) '*${client.name}*',
+      if (contact.isNotEmpty) contact,
       '---------------------------------------',
       '*Ref ID:* #${b.id}',
       '*Customer:* ${b.customerName}',

@@ -4,9 +4,14 @@ import '../../../data/models/resource.dart';
 import '../business/profiles.dart';
 import 'client_config.dart';
 
-/// demo_vehicle: copied from demo. Set its resource types, resources, currency and switches.
+/// demo_vehicle: vehicle rental client with hatchbacks, sedans and premium SUVs.
 const demoVehicle = ClientConfig(
   id: 'demo_vehicle',
+  name: 'Prime Drive Car Rental',
+  tagline: 'Self-Drive & Chauffeur Fleet',
+  address: 'Airport Avenue, Islamabad',
+  phone: '+92 333 5551234',
+  logoAsset: 'logo.png',
   profile: vehicleRental,
   resourceTypes: [
     ResourceType(

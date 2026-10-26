@@ -15,7 +15,6 @@ import '../dialogs/info_dialogs.dart';
 import '../dialogs/settings_dialog.dart';
 import '../home/home_view.dart';
 import '../pending/pending_view.dart';
-import '../../../app/utils/custom_widgets/arena_logo.dart';
 import '../widgets/arena_widgets.dart';
 import '../widgets/motion.dart';
 import 'booking_actions.dart';
@@ -83,56 +82,55 @@ class _ArenaHeader extends StatelessWidget {
       child: Row(
         children: [
           HeaderIconButton(icon: Icons.menu_rounded, tooltip: 'Menu', onPressed: () => ShellController.to.scaffoldKey.currentState?.openDrawer()),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                const _Wordmark(size: 15),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(color: c.cricket, shape: BoxShape.circle),
-                    ),
-                    const SizedBox(width: 6),
-                    Obx(() => Text(ArenaFormat.shortDay(BookingService.to.now()), style: context.text.labelSmall)),
-                  ],
+                const ClientLogo(size: 28, radius: 8),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        AppClientConfig.client.name,
+                        style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 1),
+                      Row(
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(color: c.cricket, shape: BoxShape.circle),
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Obx(
+                              () => Text(
+                                ArenaFormat.shortDay(BookingService.to.now()),
+                                style: context.text.labelSmall,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
           HeaderIconButton(icon: Icons.tune_rounded, tooltip: 'Settings', onPressed: SettingsDialog.show),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           HeaderIconButton(icon: Icons.add_rounded, tooltip: 'New booking', accent: true, onPressed: BookingActions.newBooking),
         ],
       ),
-    );
-  }
-}
-
-/// "ARENA" + emerald "BOOK".
-class _Wordmark extends StatelessWidget {
-  const _Wordmark({required this.size});
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.arena;
-    final style = context.text.titleMedium?.copyWith(fontSize: size, fontWeight: FontWeight.w800, letterSpacing: 0.4);
-    return Text.rich(
-      TextSpan(
-        text: 'ARENA',
-        children: [
-          TextSpan(
-            text: 'BOOK',
-            style: TextStyle(color: c.cricketText),
-          ),
-        ],
-      ),
-      style: style,
     );
   }
 }
@@ -314,19 +312,18 @@ class _ArenaDrawer extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(gradient: ArenaColors.ctaGradient, borderRadius: BorderRadius.circular(14)),
-                    alignment: Alignment.center,
-                    child: ArenaLogo(size: 30, color: c.onAccent, semanticLabel: null), // wordmark next to it says the name
-                  ).popIn(context),
+                  const ClientLogo(size: 46, elevation: true).popIn(context),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const _Wordmark(size: 16),
+                        Text(
+                          AppClientConfig.client.name,
+                          style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         Text('${AppClientConfig.terms.subject} Management', style: context.text.labelSmall?.copyWith(color: c.cricketText)),
                       ],
                     ),

@@ -5,9 +5,13 @@ import '../business/business_profile.dart';
 import '../business/profiles.dart';
 import 'client_config.dart';
 
-/// demo_space: copied from demo. Set its resource types, resources, currency and switches.
+/// demo_space: space rental client with rooms and gaming consoles.
 const demoSpace = ClientConfig(
   id: 'demo_space',
+  name: 'The Loft Workspaces & Studio',
+  tagline: 'Creative Rooms, Studios & Gaming Lounge',
+  address: 'Main Boulevard, Gulberg III, Lahore',
+  phone: '+92 300 1234567',
   profile: spaceRental,
   features: Features(discount: true, entryPass: false),
   resourceTypes: [

@@ -4,9 +4,13 @@ import '../../../data/models/resource.dart';
 import '../business/profiles.dart';
 import 'client_config.dart';
 
-/// demo_event: copied from demo. Set its resource types, resources, currency and switches.
+/// demo_event: event venue with banquet halls.
 const demoEvent = ClientConfig(
   id: 'demo_event',
+  name: 'Grand Imperial Banquet',
+  tagline: 'Luxury Halls & Event Spaces',
+  address: 'Club Road, Civil Lines, Karachi',
+  phone: '+92 321 9876543',
   profile: eventVenue,
 
   resourceTypes: [

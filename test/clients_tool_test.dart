@@ -38,6 +38,9 @@ void main() {
     final config = read('lib/app/config/clients/royal_arena.dart');
     expect(config, contains('const royalArena = ClientConfig('));
     expect(config, contains("id: 'royal_arena',"));
+    // Demo's business never ships under another client's name.
+    expect(config, contains("name: 'Royal Arena',"));
+    expect(config, isNot(matches(RegExp(r'^  (tagline|logoAsset|address|phone):', multiLine: true))));
     final registry = read('lib/app/config/clients/client_config.dart');
     expect(registry, contains("import 'royal_arena.dart';"));
     // Appended after whatever clients already exist.
@@ -60,6 +63,16 @@ void main() {
     expect((launch['configurations'] as List).map((c) => c['name']), containsAll(['royal_arena', 'royal_arena (release)']));
 
     expect(() => addClient(root, 'royal_arena'), throwsA(isA<ClientToolException>()));
+  });
+
+  test('add drops demo\'s branding from a CRLF demo.dart too (Windows checkout)', () {
+    const demoPath = 'lib/app/config/clients/demo.dart';
+    File('${root.path}/$demoPath').writeAsStringSync(read(demoPath).replaceAll('\r\n', '\n').replaceAll('\n', '\r\n'));
+    addClient(root, 'beta');
+    final config = read('lib/app/config/clients/beta.dart');
+    expect(config, contains("  name: 'Beta',\r\n"));
+    expect(config, isNot(matches(RegExp(r'^  (tagline|logoAsset|address|phone):', multiLine: true))));
+    expect(config, contains("  id: 'beta',\r\n  name: 'Beta',\r\n  profile:"), reason: 'line endings kept, no blank lines left');
   });
 
   test('a failed add writes nothing', () {

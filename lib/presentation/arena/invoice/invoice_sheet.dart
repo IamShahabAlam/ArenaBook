@@ -92,6 +92,8 @@ class _InvoiceSheetState extends State<InvoiceSheet> {
   @override
   Widget build(BuildContext context) {
     final c = context.arena;
+    final client = AppClientConfig.client;
+    final contact = client.contactLine();
     return Obx(() {
       final b = BookingService.to.byId(widget.bookingId);
       if (b == null) return const SizedBox(height: 120);
@@ -108,7 +110,7 @@ class _InvoiceSheetState extends State<InvoiceSheet> {
           children: [
             Stack(
               children: [
-                // Shared picture: tile, status, number and receipt. Own background and margins, so the image looks finished.
+                // Shared picture: business logo and name, status, number and receipt. Own background and margins, so the image looks finished.
                 RepaintBoundary(
                   key: _receiptKey,
                   child: ColoredBox(
@@ -117,12 +119,22 @@ class _InvoiceSheetState extends State<InvoiceSheet> {
                       padding: const EdgeInsets.fromLTRB(18, 8, 18, 14),
                       child: Column(
                         children: [
-                          Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(gradient: ArenaColors.ctaGradient, borderRadius: BorderRadius.circular(16)),
-                            child: Icon(b.resourceType.symbol, color: c.onAccent, size: 26),
-                          ).popIn(context, delay: const Duration(milliseconds: 120)),
+                          const ClientLogo(size: 52, elevation: true).popIn(context, delay: const Duration(milliseconds: 120)),
+                          const SizedBox(height: 8),
+                          Text(
+                            client.name,
+                            style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                            textAlign: TextAlign.center,
+                          ),
+                          if (contact.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                contact,
+                                style: context.text.bodySmall?.copyWith(color: c.textMuted),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
                           const SizedBox(height: 10),
                           // Crossfades when the status changes (e.g. "Balance Due" -> "Paid In Full" after Mark Paid).
                           AnimatedSwitcher(

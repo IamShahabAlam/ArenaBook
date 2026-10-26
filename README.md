@@ -42,7 +42,7 @@ before a build, so the native app and the Dart config can never disagree.
 
 | What | Where |
 |---|---|
-| Business profile (wording, time rules, pricing, features), resource types (sports) and resources (courts), default rates, currency, WhatsApp country code, features override (discount, QR pass) | `lib/app/config/clients/<client>.dart` |
+| Business name, tagline, address, phone and logo file (shown in the header, drawer, Home and receipts), business profile (wording, time rules, pricing, features), resource types (sports) and resources (courts), default rates, currency, WhatsApp country code, features override (discount, QR pass) | `lib/app/config/clients/<client>.dart` |
 | Client's own images | `assets/clients/<client>/` (see below) |
 | Client's launcher icon (optional) | `android/app/src/<client>/res/`, `ios/Runner/Assets.xcassets/AppIcon-<client>.appiconset` |
 | Trial switch URL (one Gist for all clients) | `lib/app/config/app_client_config.dart` → `accessConfigUrl` |
@@ -70,7 +70,8 @@ dart run tool/clients.dart add champions
 
 This copies `demo.dart` to `lib/app/config/clients/champions.dart` and registers the client in `ClientConfig.all`,
 the Android flavors, the iOS Podfile, the Xcode configurations and scheme, and `.vscode/launch.json`. It works on
-Windows too, with no Xcode needed. Then edit the new config file, add the client to the Gist, and run `flutter test`.
+Windows too, with no Xcode needed. The copy gets a name from the id ("Champions") and none of demo's tagline,
+logo or contact details. Then edit the new config file, add the client to the Gist, and run `flutter test`.
 `clients_config_test.dart` fails if anything is out of step.
 
 ### Client images
@@ -82,7 +83,8 @@ Each client's own images (logo, banners, etc.) go in `assets/clients/<id>/`. Onl
 dart run tool/clients.dart assets champions   # declares the folder in pubspec.yaml for that flavor only
 ```
 
-Use them in code through the current client, never with a hard-coded id:
+For a logo, put the file here and set `logoAsset: 'logo.png'` in the client's config; without one, `ClientLogo` shows a monogram.
+Use other files in code through the current client, never with a hard-coded id:
 
 ```dart
 Image.asset(AppClientConfig.client.asset('logo.png'))

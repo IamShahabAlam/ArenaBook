@@ -42,6 +42,7 @@ flutter pub get
 flutter analyze                 # add no new issues (existing infos are in untouched starter utils)
 flutter test                    # all unit + widget tests
 flutter test test/booking_rules_test.dart   # a single file
+flutter test --flavor demo_space test/arena_app_test.dart --plain-name "all tabs"   # run as another client (demo-wording tests will fail)
 dart format -l 160 <files you changed>
 flutter run --flavor demo       # plain `flutter run` = demo (pubspec default-flavor)
 flutter build apk --debug --flavor demo     # verifies native plugins compile
@@ -91,7 +92,9 @@ lib/
 **Clients (flavors):** one codebase ships a separate app per arena client. **The flavor name is the client id.**
 - `AppClientConfig.client` = `ClientConfig.forFlavor(appFlavor)`. Flutter compiles the flavor in, so there are no copy or symlink
   steps. No flavor (unit tests) means `demo`; an unknown flavor throws.
-- Per-client values (business profile, resource types and resources, currency, WhatsApp country code, optional `features`) live in `lib/app/config/clients/<id>.dart`.
+- Per-client values (business `name` (required), `tagline`, `address`, `phone`, `logoAsset`, business profile, resource types and resources,
+  currency, WhatsApp country code, optional `features`) live in `lib/app/config/clients/<id>.dart`. `tool/clients.dart add` names the copy
+  from its id and drops demo's tagline, logo and contacts, so no client ships another's business details.
   Read them through `AppClientConfig` (`.client`, `.profile`, `.terms`, `.policy`, `.pricing`, `.features`, `.resourceTypes`), never by importing a client file.
 - `profile` is required: the developer picks the client's kind of business when setting the client up. A new kind of business
   gets a new profile in `business/profiles.dart` (add it to `allProfiles`; the tests check every one). A client can override the
@@ -130,7 +133,9 @@ lib/
   (never `Get.snackbar`).
 - Motion: `.entrance(context, index:)`, `.popIn(context)`, `AnimatedNumber`, `TabFade` from `widgets/motion.dart`.
   Animation stays subtle, and every animation must honour reduce-motion (`context.reduceMotion` / `context.motion(...)`).
-- Logo: always `ArenaLogo` (tints and sizes `assets/images/logo.png`). The logo design is locked ("Square Arena").
+- Logo: two marks. The **client's** business (header, drawer, Home banner, invoice) uses `ClientLogo` (its `logoAsset`, else a
+  monogram) with `client.name`. The **ArenaBook** brand (splash, About, loaders) uses `ArenaLogo` (tints and sizes
+  `assets/images/logo.png`; design locked, "Square Arena"). Receipt contact lines come from `client.contactLine()`.
 - Fonts: Outfit (display) and Plus Jakarta Sans (body), bundled with OFL licences registered in `main.dart`.
 - Portrait only. Edge-to-edge system bars are set in `MyApp.builder`.
 - Numeric text fields that show a placeholder `0` must clear or select it on focus, so typing replaces the value.
