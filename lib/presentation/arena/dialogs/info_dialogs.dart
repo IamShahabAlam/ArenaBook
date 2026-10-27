@@ -20,25 +20,56 @@ class AboutArenaDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.arena;
-    Widget row(String label, String value) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+    final client = AppClientConfig.client;
+    final address = client.address?.trim() ?? '';
+    final phone = client.phone?.trim() ?? '';
+
+    BoxDecoration panel() => BoxDecoration(
+      color: c.surfaceSunken,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: c.border),
+    );
+
+    // Icon + text that wraps under itself, so any length of address lines up.
+    Widget contact(IconData icon, String text) => Padding(
+      padding: const EdgeInsets.only(top: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(child: Text(label, style: context.text.bodySmall)),
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(icon, size: 16, color: c.textMuted),
+          ),
           const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: context.text.labelMedium?.copyWith(color: c.textPrimary),
-            ),
+          Expanded(
+            child: SelectableText(text, style: context.text.bodySmall?.copyWith(color: c.textSecondary)),
           ),
         ],
       ),
     );
 
-    final client = AppClientConfig.client;
+    // Label hugs the left, value takes the rest and right-aligns, so every value ends on the same edge.
+    Widget detail(String label, String value, {VoidCallback? onTap}) => InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: context.text.bodySmall),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                value,
+                textAlign: TextAlign.right,
+                style: context.text.labelMedium?.copyWith(color: c.textPrimary),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
 
     return ArenaDialog(
       title: 'About ArenaBook',
@@ -46,60 +77,91 @@ class AboutArenaDialog extends StatelessWidget {
       iconColor: c.padelText,
       actions: [SoftButton(label: 'Close', onPressed: () => Navigator.of(context).pop())],
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: c.surfaceSunken,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: c.border),
-            ),
-            child: Column(
-              children: [
-                row('Client / Venue', client.name),
-                if (client.address != null && client.address!.isNotEmpty) row('Location', client.address!),
-                if (client.phone != null && client.phone!.isNotEmpty) row('Contact', client.phone!),
-                row('Profile', AppClientConfig.profile.terms.subject),
-              ],
-            ),
+          // ArenaBook brand
+          Center(
+            child: Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                gradient: ArenaColors.ctaGradient,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [BoxShadow(color: ArenaColors.emerald.withValues(alpha: 0.28), blurRadius: 18)],
+              ),
+              alignment: Alignment.center,
+              child: ArenaLogo(size: 44, color: c.onAccent, semanticLabel: null), // name is right below
+            ).popIn(context),
           ),
-          const SizedBox(height: 14),
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              gradient: ArenaColors.ctaGradient,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [BoxShadow(color: ArenaColors.emerald.withValues(alpha: 0.28), blurRadius: 18)],
-            ),
-            alignment: Alignment.center,
-            child: ArenaLogo(size: 44, color: c.onAccent, semanticLabel: null), // name is right below
-          ).popIn(context),
           const SizedBox(height: 12),
-          Text(AppStrings.appName.toUpperCase(), style: context.text.titleMedium),
+          Text(AppStrings.appName.toUpperCase(), textAlign: TextAlign.center, style: context.text.titleMedium),
+          const SizedBox(height: 2),
           Text(AppStrings.appTagline, textAlign: TextAlign.center, style: context.text.bodySmall),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
+          Center(
+            child: ArenaBadge(label: '${AppStrings.kappVersionWithDate} · build ${AppStrings.kappBuildNumber}', color: c.cricket, textColor: c.cricketText),
+          ),
+          const SizedBox(height: 18),
+
+          // The client this build is made for
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 6),
+            child: Text('LICENSED TO', style: context.text.labelSmall?.copyWith(fontWeight: FontWeight.w800, letterSpacing: 0.8)),
+          ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: c.surfaceSunken,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: c.border),
-            ),
+            padding: const EdgeInsets.all(12),
+            decoration: panel(),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                GestureDetector(
-                  onTap: () => AppStrings.websiteURL.isEmpty ? null : launchUrl(Uri.parse(AppStrings.websiteURL), mode: LaunchMode.externalApplication),
-                  child: row('Developer', AppStrings.developerName),
+                Row(
+                  children: [
+                    const ClientLogo(size: 40),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(client.name, style: context.text.titleSmall?.copyWith(color: c.textPrimary)),
+                          Text('${AppClientConfig.terms.subject} Management', style: context.text.labelSmall?.copyWith(color: c.cricketText)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                row('Built with', 'Flutter'),
-                row('Version', '${AppStrings.kappVersionWithDate} (${AppStrings.kappBuildNumber})'),
+                if (address.isNotEmpty || phone.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Divider(height: 1, color: c.border),
+                  const SizedBox(height: 2),
+                  if (address.isNotEmpty) contact(Icons.location_on_outlined, address),
+                  if (phone.isNotEmpty) contact(Icons.call_outlined, phone),
+                ],
               ],
             ),
           ),
-          TextButton(
-            onPressed: () => showLicensePage(context: context, applicationName: AppStrings.appName),
-            child: const Text('Open-source licences'),
+          const SizedBox(height: 12),
+
+          // Who built the app
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: panel(),
+            child: Column(
+              children: [
+                detail(
+                  'Developer',
+                  AppStrings.developerName,
+                  onTap: AppStrings.websiteURL.isEmpty ? null : () => launchUrl(Uri.parse(AppStrings.websiteURL), mode: LaunchMode.externalApplication),
+                ),
+                detail('Built with', 'Flutter'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Center(
+            child: TextButton(
+              onPressed: () => showLicensePage(context: context, applicationName: AppStrings.appName),
+              child: const Text('Open-source licences'),
+            ),
           ),
         ],
       ),

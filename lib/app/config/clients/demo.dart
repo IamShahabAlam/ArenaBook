@@ -22,9 +22,9 @@ const demo = ClientConfig(
       defaultRate: 3500,
       emoji: '🏏',
       resources: [
-        Resource(id: 'cricket-1', name: 'Turf Pitch 1 (Main)', description: 'Turf Pitch 1 (Main Pitch)'),
-        Resource(id: 'cricket-2', name: 'Turf Pitch 2 (Express)', description: 'Turf Pitch 2 (Express Lane)'),
-        Resource(id: 'cricket-3', name: 'Turf Pitch 3 (VIP Indoor)', description: 'Turf Pitch 3 (VIP Indoor Enclosure)'),
+        Resource(id: 'cricket-1', name: 'Turf Pitch 1 (Main)', description: 'Full-length lane · floodlit · team matches'),
+        Resource(id: 'cricket-2', name: 'Turf Pitch 2 (Express)', description: 'Short lane · bowling machine · net practice'),
+        Resource(id: 'cricket-3', name: 'Turf Pitch 3 (VIP Indoor)', description: 'Private · air-conditioned · lounge seating'),
       ],
     ),
     ResourceType(
@@ -36,9 +36,9 @@ const demo = ClientConfig(
       defaultRate: 3000,
       emoji: '🎾',
       resources: [
-        Resource(id: 'padel-a', name: 'Court A Glass Panoramic', description: 'Court A Glass Panoramic'),
-        Resource(id: 'padel-b', name: 'Court B Indoor Sky', description: 'Court B Indoor Sky'),
-        Resource(id: 'padel-c', name: 'Court C Center Court', description: 'Court C Center Court'),
+        Resource(id: 'padel-a', name: 'Court A Glass Panoramic', description: 'All-glass walls · spectator view'),
+        Resource(id: 'padel-b', name: 'Court B Indoor Sky', description: 'Roofed · open in rain and heat'),
+        Resource(id: 'padel-c', name: 'Court C Center Court', description: 'Main court · seating for matches'),
       ],
     ),
   ],

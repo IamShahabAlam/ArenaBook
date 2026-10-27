@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'app/config/app_strings.dart';
 import 'app/config/arena_theme.dart';
 import 'app/service/service_handler.dart/theme_store.dart';
+import 'app/utils/custom_widgets/keyboard_dismisser.dart';
 import 'app/utils/custom_widgets/main_error_widget.dart';
 import 'presentation/general/init_bindings/init_bindings.dart';
 import 'routes/app_pages.dart';
@@ -74,7 +75,7 @@ class MyApp extends StatelessWidget {
               systemNavigationBarColor: colors.navBar,
               systemNavigationBarDividerColor: Colors.transparent,
             ),
-            child: child!,
+            child: KeyboardDismisser(child: child!),
           );
         },
       );

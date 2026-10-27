@@ -23,9 +23,9 @@ const demoEvent = ClientConfig(
       defaultRate: 150000,
       emoji: '💒',
       resources: [
-        Resource(id: 'banquet-a', name: 'Main Banquet Hall', description: 'Main Banquet Hall'),
-        Resource(id: 'banquet-b', name: 'Small Banquet Hall', description: 'Small Banquet Hall'),
-        Resource(id: 'banquet-c', name: 'Banquet Hall', description: 'Banquet Hall'),
+        Resource(id: 'banquet-a', name: 'Main Banquet Hall', description: 'Up to 300 guests · stage · bridal room'),
+        Resource(id: 'banquet-b', name: 'Small Banquet Hall', description: 'Up to 250 guests · private entrance'),
+        Resource(id: 'banquet-c', name: 'Banquet Hall', description: 'Up to 550 guests · lawn access'),
       ],
     ),
   ],

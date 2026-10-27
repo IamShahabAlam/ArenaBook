@@ -273,6 +273,26 @@ void main() {
     await disposeApp(tester);
   });
 
+  testWidgets('resource picker shows each name, with the description underneath only when it adds something', (tester) async {
+    await setUpServices();
+    await pumpApp(tester, dark: true);
+    await tester.tap(find.byTooltip('New booking'));
+    await tester.pumpAndSettle();
+    final first = BookingFormController.to.resourceType.value.resources.first;
+    expect(find.text(first.name), findsOneWidget, reason: 'the closed field shows the name, as cards and invoices do');
+
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    for (final r in BookingFormController.to.resourceType.value.resources) {
+      expect(find.text(r.name), findsWidgets);
+      if (r.detail != null) expect(find.text(r.detail!), findsOneWidget);
+    }
+    expect(tester.takeException(), isNull);
+    await tester.tapAt(Offset.zero); // close the menu
+    await tester.pumpAndSettle();
+    await disposeApp(tester);
+  });
+
   testWidgets('calendar shows one dot per distinct sport on a day, in config order', (tester) async {
     final oct10 = DateTime(2026, 10, 10);
     await setUpServices(
@@ -412,6 +432,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(client.address!), findsOneWidget);
     expect(find.text(client.phone!), findsOneWidget);
+    expect(find.text('LICENSED TO'), findsOneWidget);
+    expect(find.text(client.name), findsNWidgets(3), reason: 'header, Home banner and About');
+    expect(find.text('${AppStrings.kappVersionWithDate} · build ${AppStrings.kappBuildNumber}'), findsOneWidget);
     expect(tester.takeException(), isNull);
     Navigator.of(tester.element(find.text('About ArenaBook'))).pop();
     await tester.pumpAndSettle();

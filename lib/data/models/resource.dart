@@ -60,11 +60,17 @@ class ResourceType {
 
 /// One bookable unit (a court, studio, hall or car). [id] is what bookings store, so it must never change once used.
 class Resource {
-  const Resource({required this.id, required this.name, required this.description});
+  const Resource({required this.id, required this.name, this.description = ''});
 
   final String id;
-  final String name; // short, shown on cards & invoices
-  final String description; // longer, shown in the picker
+  final String name; // shown everywhere: picker, cards, invoices
+  final String description; // optional extra detail, shown under the name in the picker
+
+  /// The description, or null when it is empty or just repeats the name (nothing extra to show).
+  String? get detail {
+    final d = description.trim();
+    return d.isEmpty || d == name.trim() ? null : d;
+  }
 
   static List<Resource> forType(ResourceType resourceType) => resourceType.resources;
 
@@ -75,6 +81,6 @@ class Resource {
         if (r.id == id) return r;
       }
     }
-    return Resource(id: id, name: id, description: id);
+    return Resource(id: id, name: id);
   }
 }

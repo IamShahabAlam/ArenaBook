@@ -24,11 +24,11 @@ const demoSpace = ClientConfig(
       defaultRate: 4000,
       emoji: '🛏️',
       resources: [
-        Resource(id: 'room-1', name: 'G Floor Room 1', description: 'Ground Room 1'),
-        Resource(id: 'room-2', name: 'G Floor Room 2', description: 'Ground Room 2'),
-        Resource(id: 'room-3', name: '1st Floor Room 1', description: '1st Floor Room 1'),
-        Resource(id: 'room-4', name: '1st Floor Room 2', description: '1st Floor Room 2'),
-        Resource(id: 'room-5', name: '2nd Floor Room 1', description: '2nd Floor Room 1'),
+        Resource(id: 'room-1', name: 'G Floor Room 1', description: 'Up to 20 seats · projector · step-free'),
+        Resource(id: 'room-2', name: 'G Floor Room 2', description: 'Up to 8 seats · TV · whiteboard'),
+        Resource(id: 'room-3', name: '1st Floor Room 1', description: 'Photo studio · backdrops · lights'),
+        Resource(id: 'room-4', name: '1st Floor Room 2', description: 'Podcast booth · 2 mics · soundproof'),
+        Resource(id: 'room-5', name: '2nd Floor Room 1', description: 'Up to 12 seats · daylight · balcony'),
       ],
     ),
     ResourceType(
@@ -39,7 +39,7 @@ const demoSpace = ClientConfig(
       tone: ResourceTone.blue,
       defaultRate: 2000,
       emoji: '🎮',
-      resources: [Resource(id: 'playstation-1', name: 'Playstation', description: 'Playstation Gaming Console')],
+      resources: [Resource(id: 'playstation-1', name: 'Playstation', description: 'PS5 · 4 controllers · 55" TV')],
     ),
   ],
 );

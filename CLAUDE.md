@@ -138,6 +138,8 @@ lib/
   `assets/images/logo.png`; design locked, "Square Arena"). Receipt contact lines come from `client.contactLine()`.
 - Fonts: Outfit (display) and Plus Jakarta Sans (body), bundled with OFL licences registered in `main.dart`.
 - Portrait only. Edge-to-edge system bars are set in `MyApp.builder`.
+- Keyboard: `KeyboardDismisser` (in `MyApp.builder`) closes it on any tap or drag outside the focused field, app-wide.
+  Don't add per-screen `GestureDetector`/`unfocus()` wrappers for this. Scroll views with fields also set `keyboardDismissBehavior: onDrag`.
 - Numeric text fields that show a placeholder `0` must clear or select it on focus, so typing replaces the value.
 - **Industry words come from `AppClientConfig.terms`**, never literals: court(s), ground, sport, player, fee name, arena
   (e.g. `'All ${AppClientConfig.terms.resources}'`). The brand ("ArenaBook", "ARENABOOK") stays literal.
@@ -159,6 +161,8 @@ lib/
   `ResourceType.byId(id)` / `Resource.byId(id)` fall back to placeholders, so old bookings still render.
   **Never change a resource type or resource `id` once used**: bookings and prefs keys (`arena_<id>_hourly_rate`) store it.
   Stored booking JSON keeps the legacy keys `sport` and `courtId`; don't rename them.
+  A resource's `name` is what every screen and receipt shows; its optional `description` is extra detail shown under the
+  name in the booking form's picker only (`Resource.detail` hides it when empty or the same as the name).
   Never hard-code "cricket" or "padel" outside the config and the tests.
 - **Never branch on the business type or client id.** A difference between businesses is a value (config), a behaviour
   (a sealed strategy class) or a flag (`Features`); see `docs/EXPANSION_PLAN.md`.
@@ -213,7 +217,7 @@ app through them.
 - `arena_app_test.dart`: widget tests for the arena screens. `business_profile_test.dart` (wording, every profile),
   `booking_policy_test.dart` (time rules, opening hours, sessions, full day), `pricing_test.dart` (hourly vs typed price, v2 records),
   `resource_types_config_test.dart`, `app_access_test.dart`,
-  `splash_and_logo_test.dart`, `cache_field_test.dart`, `response_cache_test.dart`.
+  `splash_and_logo_test.dart`, `keyboard_dismisser_test.dart`, `cache_field_test.dart`, `response_cache_test.dart`.
 - Helpers: `test/helpers/resource_types.dart` (`cricket`, `padel` from config) and `temp_dir.dart` (Hive temp dirs with
   retries for Windows file locks).
 - `AppClientConfig.features`, `.resourceTypes`, `.profile`, `.policy` and `.pricing` are deliberately not `final`, so tests can toggle them. Restore them in `tearDown`.

@@ -191,15 +191,34 @@ class _ResourcePicker extends GetView<BookingFormController> {
             key: ValueKey(controller.resourceType.value),
             initialValue: controller.resourceId.value,
             isExpanded: true,
+            itemHeight: null, // menu rows grow to fit the detail line
             dropdownColor: c.surface,
             borderRadius: BorderRadius.circular(14),
             icon: Icon(Icons.expand_more_rounded, color: c.textSecondary),
             style: context.text.bodyMedium,
+            // The closed field shows just the name, the same text as cards and invoices.
+            selectedItemBuilder: (context) => [for (final resource in resources) Text(resource.name, maxLines: 1, overflow: TextOverflow.ellipsis)],
             items: [
               for (final resource in resources)
                 DropdownMenuItem(
                   value: resource.id,
-                  child: Text(resource.description, overflow: TextOverflow.ellipsis),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(resource.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        if (resource.detail case final detail?)
+                          Text(
+                            detail,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.text.bodySmall?.copyWith(color: c.textMuted),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
             ],
             onChanged: (id) {

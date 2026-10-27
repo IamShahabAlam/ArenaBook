@@ -23,9 +23,9 @@ const demoVehicle = ClientConfig(
       defaultRate: 2500,
       emoji: '🚘',
       resources: [
-        Resource(id: 'hatchback-1', name: 'Alto Grey 2022', description: 'Hatchback 1'),
-        Resource(id: 'hatchback-2', name: 'Mira White 2019', description: 'Hatchback 2'),
-        Resource(id: 'hatchback-3', name: 'Cultus Black 2024', description: 'Hatchback 3'),
+        Resource(id: 'hatchback-1', name: 'Alto Grey 2022', description: 'Manual · 4 seats · fuel saver'),
+        Resource(id: 'hatchback-2', name: 'Mira White 2019', description: 'Automatic · 4 seats · fuel saver'),
+        Resource(id: 'hatchback-3', name: 'Cultus Black 2024', description: 'Manual · 5 seats · AC'),
       ],
     ),
     ResourceType(
@@ -37,9 +37,9 @@ const demoVehicle = ClientConfig(
       defaultRate: 3500,
       emoji: '🚗',
       resources: [
-        Resource(id: 'sedan-1', name: 'Camry White 2022', description: 'Sedan 1'),
-        Resource(id: 'sedan-2', name: 'Corolla Black 2019', description: 'Sedan 2'),
-        Resource(id: 'sedan-3', name: 'Prius Green 2024', description: 'Sedan 3'),
+        Resource(id: 'sedan-1', name: 'Camry White 2022', description: 'Automatic · 5 seats · leather interior'),
+        Resource(id: 'sedan-2', name: 'Corolla Black 2019', description: 'Automatic · 5 seats · AC'),
+        Resource(id: 'sedan-3', name: 'Prius Green 2024', description: 'Automatic · 5 seats · hybrid'),
       ],
     ),
     ResourceType(
@@ -51,9 +51,9 @@ const demoVehicle = ClientConfig(
       defaultRate: 5000,
       emoji: '🚙',
       resources: [
-        Resource(id: 'premium-1', name: 'Jaecoo J5 White 2021', description: 'Premium 1'),
-        Resource(id: 'premium-2', name: 'Oshan x7 Black 2023', description: 'Premium 2'),
-        Resource(id: 'premium-3', name: 'Hilux Silver 2026', description: 'Premium 3'),
+        Resource(id: 'premium-1', name: 'Jaecoo J5 White 2022', description: 'Automatic · 5 seats · panoramic roof'),
+        Resource(id: 'premium-2', name: 'Oshan x7 Black 2023', description: 'Automatic · 7 seats · family SUV'),
+        Resource(id: 'premium-3', name: 'Hilux Silver 2026', description: 'Automatic · 5 seats · 4x4 pickup'),
       ],
     ),
   ],

@@ -4,8 +4,13 @@ class AppStrings {
   // App Identity ------------------- (fill these per project)
   static const appName = 'ArenaBook';
 
-  /// Follows the offered resource types, e.g. "Indoor Cricket & Padel Court Booking".
-  static String get appTagline => '${ResourceType.offered.map((s) => s.label).join(' & ')} Booking';
+  /// Follows the offered resource types, e.g. "Indoor Cricket & Padel Court Booking" or "Hatchback, Sedan & Premium Booking".
+  static String get appTagline {
+    final labels = ResourceType.offered.map((s) => s.label).toList();
+    final list = labels.length < 2 ? labels.join() : '${labels.sublist(0, labels.length - 1).join(', ')} & ${labels.last}';
+    return '$list Booking';
+  }
+
   static const developerName = 'DevCat Studios';
   static String kappVersionWithDate = 'v1.0.0'; // keep in sync with `version:` in pubspec.yaml
   static const kappBuildNumber = 1; // must match the build number on Play Console & App Store Connect

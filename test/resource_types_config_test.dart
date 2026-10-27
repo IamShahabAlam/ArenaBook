@@ -60,6 +60,29 @@ void main() {
     }
   });
 
+  test('a resource shows its description only when it adds to the name', () {
+    expect(const Resource(id: 'a', name: 'Studio A', description: 'Studio A (cyclorama wall)').detail, 'Studio A (cyclorama wall)');
+    expect(
+      const Resource(id: 'b', name: 'Court B', description: ' Court B ').detail,
+      isNull,
+      reason: 'repeats the name',
+    );
+    expect(
+      const Resource(id: 'c', name: 'Room 1').detail,
+      isNull,
+      reason: 'no description',
+    );
+    expect(Resource.byId('removed-1').detail, isNull, reason: 'placeholder for a removed resource');
+  });
+
+  test('the tagline lists resource types as "A, B & C"', () {
+    final both = [cricket, padel]; // read both first: the helpers are lazy and look up the current config
+    AppClientConfig.resourceTypes = [cricket];
+    expect(AppStrings.appTagline, 'Indoor Cricket Booking');
+    AppClientConfig.resourceTypes = both;
+    expect(AppStrings.appTagline, 'Indoor Cricket & Padel Court Booking');
+  });
+
   testWidgets('cricket switched off: gone from filters, form and Settings; old bookings still show', (tester) async {
     AppClientConfig.resourceTypes = [disabled(cricket), padel];
     final oldCricket = app.seeded(id: 'TRF-1001', hour: 20); // made while cricket was on
@@ -106,7 +129,7 @@ void main() {
 
     expect(find.text('Futsal'), findsWidgets); // Home filter (short labels with 3 sports)
     expect(SettingsStore.to.rateFor(futsal), 1800); // default rate from config
-    expect(AppStrings.appTagline, 'Indoor Cricket & Padel Court & Futsal Pitch Booking');
+    expect(AppStrings.appTagline, 'Indoor Cricket, Padel Court & Futsal Pitch Booking');
 
     ShellController.to.go(ArenaTab.addBooking);
     await tester.pumpAndSettle();
